@@ -1,0 +1,872 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行数据管理</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>飞行数据查询</span>
+        </li>
+    </ul>
+
+    <div class="pt-5">
+        <div class="grid xl:grid-cols-1 gap-6 mb-6">
+            <div x-data="custom">
+                <div class="space-y-10">
+                    <div class="panel sticky-header">
+                        <h5 class="md:absolute md:top-[25px] md:mb-0 mb-5 font-semibold text-lg dark:text-white-light">QAR数据</h5>
+                        <table id="myTable1" class="whitespace-nowrap table-checkbox table-striped table-hover"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="grid xl:grid-cols-1 gap-6 mb-6">
+            <div x-data="chart">
+                <div class="panel sticky-header">
+                    <div class="flex items-center justify-between mb-5">
+                        <h5 class="font-semibold text-lg dark:text-white">属性方差分析</h5>
+                    </div>
+                    <div x-ref="columnChart" class="bg-white dark:bg-black rounded-lg overflow-hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("custom", () => ({
+                ids1: [],
+                datatable1: null,
+                tableData1: {{ json_data|safe }},
+                init() {
+                    this.datatable1 = new simpleDatatables.DataTable('#myTable1', {
+                        data: {
+                            headings: {{ headings|safe }},
+                            data: this.tableData1,
+                        },
+                        perPage: 20,
+                        perPageSelect: [10, 20, 30, 50, 100],
+                        columns: [
+                            {
+                                select: 0,
+                                render: (data, cell, row) => {
+                                    return `<strong>${data}</strong>`;
+                                },
+                            },
+                        ],
+                        firstLast: true,
+                        firstText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        lastText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        prevText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        nextText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        labels: {
+                            perPage: "{select}"
+                        },
+                        layout: {
+                            top: "{search}",
+                            bottom: "{info}{select}{pager}",
+                        },
+                    });
+
+                },
+
+                formatDate(date) {
+                    if (date) {
+                        const dt = new Date(date);
+                        const month = dt.getMonth() + 1 < 10 ? '0' + (dt.getMonth() + 1) : dt.getMonth() + 1;
+                        const day = dt.getDate() < 10 ? '0' + dt.getDate() : dt.getDate();
+                        return day + '/' + month + '/' + dt.getFullYear();
+                    }
+                    return '';
+                },
+
+                checkAll1(isChecked) {
+                    if (isChecked) {
+                        this.ids1 = this.tableData1.map((d) => {
+                            return d[0];
+                        });
+                    } else {
+                        this.ids1 = [];
+                    }
+                },
+
+                checkAll2(isChecked) {
+                    if (isChecked) {
+                        this.ids2 = this.tableData2.map((d) => {
+                            return d[0];
+                        });
+                    } else {
+                        this.ids2 = [];
+                    }
+                },
+
+                checkAll3(isChecked) {
+                    if (isChecked) {
+                        this.ids3 = this.tableData3.map((d) => {
+                            return d[0];
+                        });
+                    } else {
+                        this.ids3 = [];
+                    }
+                },
+
+            }));
+        });
+    </script>
+
+    <!-- start hightlight js -->
+    <link rel="stylesheet" href="{% static 'css/highlight.min.css' %}">
+    <script src="{% static 'js/highlight.min.js' %}"></script>
+    <!-- end hightlight js -->
+
+    <script>
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("chart", () => ({
+                // highlightjs
+                codeArr: [],
+                toggleCode(name) {
+                    if (this.codeArr.includes(name)) {
+                        this.codeArr = this.codeArr.filter((d) => d != name);
+                    } else {
+                        this.codeArr.push(name);
+
+                        setTimeout(() => {
+                            document.querySelectorAll('pre.code').forEach(el => {
+                                hljs.highlightElement(el);
+                            });
+                        });
+                    }
+                },
+
+                lineChart: null,
+                areaChart: null,
+                columnChart: null,
+                simpleColumnStacked: null,
+                barChart: null,
+                mixedChart: null,
+                radarChart: null,
+                pieChart: null,
+                donutChart: null,
+                polarAreaChart: null,
+                radialBarChart: null,
+                bubbleChart: null,
+
+                init() {
+                    isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode ? true : false;
+                    isRtl = this.$store.app.rtlClass === "rtl" ? true : false;
+
+                    setTimeout(() => {
+                        this.lineChart = new ApexCharts(this.$refs.lineChart, this
+                            .lineChartOptions);
+                        this.lineChart.render();
+
+                        this.areaChart = new ApexCharts(this.$refs.areaChart, this
+                            .areaChartOptions);
+                        this.areaChart.render();
+
+                        this.columnChart = new ApexCharts(this.$refs.columnChart, this
+                            .columnChartOptions);
+                        this.columnChart.render();
+
+                        this.simpleColumnStacked = new ApexCharts(this.$refs
+                            .simpleColumnStacked, this.simpleColumnStackedOptions);
+                        this.simpleColumnStacked.render();
+
+                        this.barChart = new ApexCharts(this.$refs.barChart, this
+                            .barChartOptions);
+                        this.barChart.render();
+
+                        this.mixedChart = new ApexCharts(this.$refs.mixedChart, this
+                            .mixedChartOptions);
+                        this.mixedChart.render();
+
+                        this.radarChart = new ApexCharts(this.$refs.radarChart, this
+                            .radarChartOptions);
+                        this.radarChart.render();
+
+                        this.pieChart = new ApexCharts(this.$refs.pieChart, this
+                            .pieChartOptions);
+                        this.pieChart.render();
+
+                        this.donutChart = new ApexCharts(this.$refs.donutChart, this
+                            .donutChartOptions);
+                        this.donutChart.render();
+
+                        this.polarAreaChart = new ApexCharts(this.$refs.polarAreaChart, this
+                            .polarAreaChartOptions);
+                        this.polarAreaChart.render();
+
+                        this.radialBarChart = new ApexCharts(this.$refs.radialBarChart, this
+                            .radialBarChartOptions);
+                        this.radialBarChart.render();
+
+                        this.bubbleChart = new ApexCharts(this.$refs.bubbleChart, this
+                            .bubbleChartOptions);
+                        this.bubbleChart.render();
+                    }, 300);
+
+                    this.$watch('$store.app.theme', () => {
+                        this.refreshOptions();
+                    })
+
+                    this.$watch('$store.app.rtlClass', () => {
+                        this.refreshOptions();
+                    })
+
+                },
+
+                refreshOptions() {
+                    isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode ? true : false;
+                    isRtl = this.$store.app.rtlClass === "rtl" ? true : false;
+                    this.lineChart.updateOptions(this.lineChartOptions);
+                    this.areaChart.updateOptions(this.areaChartOptions);
+                    this.columnChart.updateOptions(this.columnChartOptions);
+                    this.simpleColumnStacked.updateOptions(this.simpleColumnStackedOptions);
+                    this.barChart.updateOptions(this.barChartOptions);
+                    this.mixedChart.updateOptions(this.mixedChartOptions);
+                    this.radarChart.updateOptions(this.radarChartOptions);
+                    this.pieChart.updateOptions(this.pieChartOptions);
+                    this.donutChart.updateOptions(this.donutChartOptions);
+                    this.polarAreaChart.updateOptions(this.polarAreaChartOptions);
+                    this.radialBarChart.updateOptions(this.radialBarChartOptions);
+                    this.bubbleChart.updateOptions(this.bubbleChartOptions);
+                },
+
+                get lineChartOptions() {
+                    return {
+                        chart: {
+                            height: 300,
+                            type: 'line',
+                            toolbar: false
+                        },
+                        colors: ['#4361ee'],
+                        tooltip: {
+                            marker: false,
+                            y: {
+                                formatter(number) {
+                                    return '$' + number
+                                }
+                            }
+                        },
+                        stroke: {
+                            width: 2,
+                            curve: 'smooth'
+                        },
+                        xaxis: {
+                            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June'],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -20 : 0,
+                            }
+                        },
+                        series: [{
+                            name: 'Sales',
+                            data: [45, 55, 75, 25, 45, 110],
+                        }],
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+
+                get areaChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Income',
+                            data: [16800, 16800, 15500, 17800, 15500, 17000, 19000, 16000,
+                                15000, 17000, 14000, 17000
+                            ]
+                        }],
+                        chart: {
+                            type: 'area',
+                            height: 300,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#805dca'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            width: 2,
+                            curve: 'smooth'
+                        },
+                        xaxis: {
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -40 : 0,
+                            }
+                        },
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+                            'Oct', 'Nov', 'Dec'
+                        ],
+                        legend: {
+                            horizontalAlign: 'left'
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+
+                get columnChartOptions() {
+                    return {
+                        series: [{
+                            name: '方差',
+                            data: {{ variances|safe }}
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#805dca', '#e7515a'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            show: true,
+                            width: 2,
+                            colors: ['transparent']
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '55%',
+                                endingShape: 'rounded'
+                            },
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed'
+                        },
+                        xaxis: {
+                            categories: {{ labels|safe}},
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                            y: {
+                                formatter: function(val) {
+                                    return val;
+                                },
+                            },
+                        },
+                    }
+                },
+
+                get simpleColumnStackedOptions() {
+                    return {
+                        series: [{
+                                name: 'PRODUCT A',
+                                data: [44, 55, 41, 67, 22, 43]
+                            },
+                            {
+                                name: 'PRODUCT B',
+                                data: [13, 23, 20, 8, 13, 27]
+                            },
+                        ],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            stacked: true,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#2196f3', '#3b3f5c'],
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                legend: {
+                                    position: 'bottom',
+                                    offsetX: -10,
+                                    offsetY: 5
+                                }
+                            }
+                        }],
+                        plotOptions: {
+                            bar: {
+                                horizontal: false
+                            }
+                        },
+                        xaxis: {
+                            type: 'datetime',
+                            categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT',
+                                '01/04/2011 GMT', '01/05/2011 GMT', '01/06/2011 GMT'
+                            ],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -20 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed'
+                        },
+                        legend: {
+                            position: 'right',
+                            offsetY: 40
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light'
+                        },
+                        fill: {
+                            opacity: 0.8
+                        }
+                    }
+                },
+
+                get barChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Sales',
+                            data: [44, 55, 41, 67, 22, 43, 21, 70]
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            show: true,
+                            width: 1
+                        },
+                        colors: ['#4361ee'],
+                        xaxis: {
+                            categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            reversed: isRtl ? true : false,
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: true,
+                            }
+                        },
+                        fill: {
+                            opacity: 0.8
+                        }
+                    }
+                },
+
+                get mixedChartOptions() {
+                    return {
+                        series: [{
+                                name: 'TEAM A',
+                                type: 'column',
+                                data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
+                            }, {
+                                name: 'TEAM B',
+                                type: 'area',
+                                data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
+                            },
+                            {
+                                name: 'TEAM C',
+                                type: 'line',
+                                data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
+                            }
+                        ],
+                        chart: {
+                            height: 300,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#2196f3', '#00ab55', '#4361ee'],
+                        stroke: {
+                            width: [0, 2, 2],
+                            curve: 'smooth'
+                        },
+                        plotOptions: {
+                            bar: {
+                                columnWidth: '50%'
+                            }
+                        },
+                        fill: {
+                            opacity: [1, 0.25, 1],
+                        },
+
+                        labels: ['01/01/2022', '02/01/2022', '03/01/2022', '04/01/2022',
+                            '05/01/2022', '06/01/2022', '07/01/2022',
+                            '08/01/2022', '09/01/2022', '10/01/2022', '11/01/2022'
+                        ],
+                        markers: {
+                            size: 0
+                        },
+                        xaxis: {
+                            type: 'datetime',
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Points',
+                            },
+                            min: 0,
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            shared: true,
+                            intersect: false,
+                            theme: isDark ? 'dark' : 'light',
+                            y: {
+                                formatter: (y) => {
+                                    if (typeof y !== "undefined") {
+                                        return y.toFixed(0) + " points";
+                                    }
+                                    return y;
+                                }
+                            }
+                        },
+                        legend: {
+                            itemMargin: {
+                                horizontal: 4,
+                                vertical: 8
+                            }
+                        }
+                    }
+                },
+
+                get radarChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Series 1',
+                            data: [80, 50, 30, 40, 100, 20],
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'radar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee'],
+                        xaxis: {
+                            categories: ['January', 'February', 'March', 'April', 'May', 'June'],
+                        },
+                        plotOptions: {
+                            radar: {
+                                polygons: {
+                                    strokeColors: isDark ? '#191e3a' : '#e0e6ed',
+                                    connectorColors: isDark ? '#191e3a' : '#e0e6ed',
+                                }
+                            }
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+
+                get pieChartOptions() {
+                    return {
+                        series: [44, 55, 13, 43, 22],
+                        chart: {
+                            height: 300,
+                            type: 'pie',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+                        colors: ['#4361ee', '#805dca', '#00ab55', '#e7515a', '#e2a03f'],
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                chart: {
+                                    width: 200
+                                }
+                            }
+                        }],
+                        stroke: {
+                            show: false,
+                        },
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                },
+
+                get donutChartOptions() {
+                    return {
+                        series: [44, 55, 13],
+                        chart: {
+                            height: 300,
+                            type: 'donut',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        stroke: {
+                            show: false,
+                        },
+                        labels: ['Team A', 'Team B', 'Team C'],
+                        colors: ['#4361ee', '#805dca', '#e2a03f'],
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                chart: {
+                                    width: 200
+                                }
+                            }
+                        }],
+                        legend: {
+                            position: 'bottom',
+                        },
+                    }
+                },
+
+                get polarAreaChartOptions() {
+                    return {
+                        series: [14, 23, 21, 17, 15, 10, 12, 17, 21],
+                        chart: {
+                            height: 300,
+                            type: 'polarArea',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#805dca', '#00ab55', '#e7515a', '#e2a03f', '#2196f3',
+                            '#3b3f5c'
+                        ],
+                        stroke: {
+                            show: false,
+                        },
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                chart: {
+                                    width: 200
+                                }
+                            }
+                        }],
+                        plotOptions: {
+                            polarArea: {
+                                rings: {
+                                    strokeColor: isDark ? '#191e3a' : '#e0e6ed',
+                                },
+                                spokes: {
+                                    connectorColors: isDark ? '#191e3a' : '#e0e6ed',
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                        },
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+
+                get radialBarChartOptions() {
+                    return {
+                        series: [44, 55, 41],
+                        chart: {
+                            height: 300,
+                            type: 'radialBar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#805dca', '#e2a03f'],
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        plotOptions: {
+                            radialBar: {
+                                dataLabels: {
+                                    name: {
+                                        fontSize: '22px',
+                                    },
+                                    value: {
+                                        fontSize: '16px',
+                                    },
+                                    total: {
+                                        show: true,
+                                        label: 'Total',
+                                        formatter: function(w) {
+                                            return 249
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        labels: ['Apples', 'Oranges', 'Bananas'],
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+
+                get bubbleChartOptions() {
+                    return {
+                        series: [{
+                                name: 'Bubble1',
+                                data: this.generateData(new Date('11 Feb 2017 GMT').getTime(),
+                                    20, {
+                                        min: 10,
+                                        max: 60
+                                    })
+                            },
+                            {
+                                name: 'Bubble2',
+                                data: this.generateData(new Date('11 Feb 2017 GMT').getTime(),
+                                    20, {
+                                        min: 10,
+                                        max: 60
+                                    })
+                            },
+                        ],
+                        chart: {
+                            height: 300,
+                            type: 'bubble',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#00ab55'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        xaxis: {
+                            tickAmount: 12,
+                            type: 'category',
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            max: 70,
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        },
+                        stroke: {
+                            colors: isDark ? ['#191e3a'] : ['#e0e6ed'],
+                        },
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+
+                generateData(baseval, count, yrange) {
+                    var i = 0;
+                    var series = [];
+                    while (i < count) {
+                        var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
+                        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+                        var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
+
+                        series.push([x, y, z]);
+                        baseval += 86400000;
+                        i++;
+                    }
+                    return series;
+                }
+            }));
+        });
+    </script>
+
+
+
+{% endblock %}
