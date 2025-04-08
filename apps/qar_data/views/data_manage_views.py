@@ -2,9 +2,9 @@ import os
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from .forms import QARUploadForm
-from .models import QAR
-from .serializers import QARSerializer
+from ..forms import QARUploadForm
+from ..models import QAR
+from ..serializers import QARSerializer
 from rest_framework import viewsets
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
@@ -13,7 +13,8 @@ from django.core.paginator import Paginator
 
 
 
-
+# 飞行数据管理
+# 飞行数据导入
 def get_model_fields():
     """获取QAR模型中需要导入的字段列表（排除元字段）"""
     exclude_fields = ['id', 'qar_id', 'flight_label', 'label']
@@ -134,6 +135,8 @@ def qar_upload(request):
         'model_fields': get_model_fields()  # 可用于前端显示期望的字段
     })
 
+
+# 飞行数据预览
 class QARViewSet(viewsets.ModelViewSet):
     queryset = QAR.objects.all()
     serializer_class = QARSerializer
@@ -158,7 +161,7 @@ class QARViewSet(viewsets.ModelViewSet):
     ordering = ['dSimTime']  # 默认排序
 
 
-def qar_data(request):
+def qar_preview(request):
     # 定义表头（保持与原始格式一致）
     headings = [
         'QAR ID', '模拟时间', '单步运行模拟时间', '重力加速度', '风速沿地轴X轴的分量', '风速沿地轴Y轴的分量',
@@ -240,4 +243,14 @@ def qar_data(request):
         'page_obj': page_obj  # 分页对象，用于模板中显示分页导航
     }
     
-    return render(request, 'data_manage/qar_data_table.html', context)
+    return render(request, 'data_manage/qar_preview.html', context)
+
+
+# 数据质量监控
+def qar_quality(request):
+    return render(request, 'data_manage/qar_quality.html')
+
+
+# 数据质量提升
+def qar_imputation(request):
+    return render(request, 'data_manage/qar_imputation.html')

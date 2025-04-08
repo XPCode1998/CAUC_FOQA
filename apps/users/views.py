@@ -3,18 +3,15 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from math import radians, sin, cos, sqrt, atan2
-
 import hashlib
 
 
-# Create your views here.
 # Create your views here.
 # 用户注册页面
 def register(request):
     # GET请求方式：打开用户注册页面
     if request.method == 'GET':
         info = '请输入您的用户名和密码'
-        print('注册')
         return render(request, 'auth/register.html', {'info':info})
      # POST请求方式：提交注册请求
     elif request.method == 'POST':
@@ -65,7 +62,6 @@ def login(request):
             # 密码加密，与数据库中加密密码进行比对
             m = hashlib.md5()
             m.update(password.encode())
-            print('密码',m.hexdigest())
             user = authenticate(username=username, password = m.hexdigest())
             if user:
                 if user.is_active :
@@ -73,7 +69,7 @@ def login(request):
                     request.session['username'] = username
                     request.session['uid'] = user.id
                     # 首页跳转对象
-                    resp = HttpResponseRedirect('qar_upload')
+                    resp = HttpResponseRedirect('index')
                     # 如果用户勾选了“记住我”
                     if 'remember' in request.POST:
                         # 创建Cookies对象，有效期3天

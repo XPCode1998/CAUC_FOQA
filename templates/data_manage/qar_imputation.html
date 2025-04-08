@@ -1,0 +1,21 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行数据管理</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>数据质量提升</span>
+        </li>
+    </ul>
+
+    <div class="pt-5">Hello World</div>
+ 
+{% endblock %}
