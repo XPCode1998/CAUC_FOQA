@@ -10,6 +10,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 import pandas as pd
 from django.core.paginator import Paginator
+import json
 
 
 
@@ -162,88 +163,37 @@ class QARViewSet(viewsets.ModelViewSet):
 
 
 def qar_preview(request):
-    # 定义表头（保持与原始格式一致）
-    headings = [
-        'QAR ID', '模拟时间', '单步运行模拟时间', '重力加速度', '风速沿地轴X轴的分量', '风速沿地轴Y轴的分量',
-        '风速沿地轴Z轴的分量', '紊流沿机体轴X轴的分量', '紊流沿机体轴Y轴的分量', '紊流沿机体轴Z轴的分量',
-        '飞机质量', '迎角', '迎角', '迎角正弦值', '迎角余弦值', '迎角变化率', '侧滑角', '侧滑角',
-        '侧滑角正弦值', '侧滑角余弦值', '侧滑角变化率', '滚转角', '俯仰角', '偏航角', '航迹方位角',
-        '航迹爬升角', '航迹速度', '真空速', '马赫数', '动压', '静压', '航迹速度沿机体轴X轴的分量',
-        '航迹速度沿机体轴Y轴的分量', '航迹速度沿机体轴Z轴的分量', '线加速度沿机体轴X轴的分量',
-        '线加速度沿机体轴Y轴的分量', '线加速度沿机体轴Z轴的分量', '空速沿机体轴X轴的分量',
-        '空速沿机体轴Y轴的分量', '空速沿机体轴Z轴的分量', '机体轴X轴角速度', '机体轴Y轴角速度',
-        '机体轴Z轴角速度', '机体轴X轴角速度', '机体轴Y轴角速度', '机体轴Z轴角速度',
-        '机体轴X轴角加速度', '机体轴Y轴角加速度', '机体轴Z轴角加速度', '机体轴重心处X轴的过载',
-        '机体轴重心处Y轴的过载', '机体轴重心处Z轴的过载', '线加速度沿机地轴X轴的分量',
-        '线加速度沿机地轴Y轴的分量', '线加速度沿机地轴Z轴的分量', '航迹速度沿地轴系X轴速度',
-        '航迹速度沿地轴系Y轴速度', '航迹速度沿地轴系Z轴速度', '经度', '纬度', '飞机重心海拔高度',
-        '飞机重心离地高度', '真航向', '磁航向', '当前飞机质心在前一时刻地轴系的X轴坐标',
-        '当前飞机质心在前一时刻地轴系的Y轴坐标', '当前飞机质心在前一时刻地轴系的Z轴坐标',
-        '副翼偏度', '方向舵偏度', '升降舵偏度', '起落架位置', '襟翼偏度', '剩余油量', '发动机油门杆位置1',
-        '发动机油门杆位置2', '发动机转速1', '发动机转速2', '发动机推力', '耗油量', '燃油消耗率',
-        '燃油消耗量', '余油量', '横向驾驶员（滚转）操纵位置（横向杆位移）', '航向驾驶员（偏航）操纵位置（脚蹬位移）',
-        '纵向驾驶员（俯仰）操纵位置（纵向杆位移）', '配平滚转操纵量', '配平俯仰操纵量', '标签',
-    ]
-    
-    variances = [0.08, 0.0, 0.06, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 
-                 0.0, 0.0, 0.0, 0.0, 0.04, 0.02, 0.08, 0.08, 0.01, 0.04, 0.04, 0.04, 0.02, 0.06, 0.04, 
-                 0.0, 0.01, 0.0, 0.0, 0.0, 0.04, 0.01, 0.0, 0.0, 0.01, 0.0, 0.0, 0.01, 0.0, 0.0, 0.0, 
-                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06, 0.07, 0.01, 0.03, 0.03, 0.06, 0.06, 0.08, 0.08, 
-                 0.02, 0.02, 0.06, 0.0, 0.01, 0.0, 0.0, 0.0, 0.07, 0.16, 0.16, 0.21, 0.2, 0.0, 0.03, 
-                 0.0, 0.03, 0.07, 0.0, 0.0, 0.0, 0.0, 0.04, 0.0, 0.0]
-    
-    labels = headings
-    
-    # 获取页码参数，默认为1
+    # 获取字段列表作为表头（自动匹配模型字段）
+    model_fields = [field.verbose_name for field in QAR._meta.fields]
+    field_names = [field.name for field in QAR._meta.fields]
+
+    # 获取页码参数，默认第一页
     page_number = request.GET.get('page', 1)
-    
-    # 设置每页显示的数量（可根据实际需求调整）
-    per_page = 50
-    
-    query_set = QAR.objects.values_list(
-    'qar_id', 'dSimTime', 'dStepTime', 'dGravityAcc', 'dUwg', 'dVwg', 'dWwg',
-    'dUTrub', 'dVTrub', 'dWTrub', 'dMass', 'dAlpha', 'dAlphaRad', 'dSinAlpha',
-    'dCosAlpha', 'dAlphaDot', 'dBeta', 'dBetaRad', 'dSinBeta', 'dCosBeta',
-    'dBetaDot', 'dPhi', 'dTheta', 'dPsi', 'dChi', 'dGamma', 'dGroundspeed',
-    'dTAS', 'dMach', 'dPd', 'dPs', 'dUk', 'dVk', 'dWk', 'dUkDot', 'dVkDot',
-    'dWkDot', 'dU', 'dV', 'dW', 'dP', 'dQ', 'dR', 'dPRad', 'dQRad', 'dRRad',
-    'dRDot', 'dPDot', 'dQDot', 'dNx', 'dNy', 'dNz', 'dUkgDot', 'dVkgDot',
-    'dWkgDot', 'dUkg', 'dVkg', 'dWkg', 'dLongitude', 'dLatitude', 'dASL',
-    'dAGL', 'dTrueHeading', 'dMagHeading', 'dPosXg', 'dPosYg', 'dPosZg',
-    'dtx', 'dty', 'dtz', 'LGPos', 'dFlap', 'gfuel', 'pe_t1', 'pe_t2', 'rot1',
-    'rot2', 'thrust', 'gfused', 'dGtNormal', 'dGfNormal', 'dGFuel', 'dDa',
-    'dDr', 'dDe', 'dDaTrim', 'dDeTrim', 'label'
-    )
-    
-    # 创建分页器
+    per_page = 50  # 每页显示数量
+
+    # 查询字段值（values生成dict更方便）
+    query_set = QAR.objects.values(*field_names)
     paginator = Paginator(query_set, per_page)
-    
+
     try:
         page_obj = paginator.page(page_number)
     except PageNotAnInteger:
-        # 如果页码不是整数，返回第一页
         page_obj = paginator.page(1)
     except EmptyPage:
-        # 如果页码超出范围，返回最后一页
         page_obj = paginator.page(paginator.num_pages)
-    
-    # 将当前页数据转换为DataFrame
-    df = pd.DataFrame(list(page_obj.object_list), columns=labels)
 
-    print(df)
-    
-    # 转换为JSON格式
+    # 将数据转换为 DataFrame
+    df = pd.DataFrame(list(page_obj.object_list), columns=field_names)
     json_data = df.to_json(orient='values', date_format='iso')
-    
+
     context = {
-        'json_data': json_data,
-        'headings': headings,
-        'variances': variances,
-        'labels': labels,
-        'page_obj': page_obj  # 分页对象，用于模板中显示分页导航
+        'table_data': json_data,
+        'table_headings': model_fields,
+        'page_obj': page_obj
     }
-    
+
     return render(request, 'data_manage/qar_preview.html', context)
+
 
 
 # 数据质量监控
