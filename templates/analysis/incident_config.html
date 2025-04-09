@@ -4,7 +4,6 @@
 {% block content %}
 
     <script src="{% static 'js/simple-datatables.js' %}"></script>
-
     <script defer src="{% static 'js/apexcharts.js' %}"></script>
 
     <ul class="flex space-x-2 rtl:space-x-reverse">
@@ -16,6 +15,373 @@
         </li>
     </ul>
 
-    <div class="pt-5">Hello World</div>
- 
+    <div class="pt-5">
+        <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">QAR参数阈值设置</h5>
+            </div>
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Flight Parameters -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">飞行参数</h6>
+                        <div class="form-group">
+                            <label for="dSimTime">模拟时间</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dSimTime_min" name="dSimTime_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dSimTime_max" name="dSimTime_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dGravityAcc">重力加速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dGravityAcc_min" name="dGravityAcc_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dGravityAcc_max" name="dGravityAcc_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dMass">飞机质量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dMass_min" name="dMass_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dMass_max" name="dMass_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dTAS">真空速</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dTAS_min" name="dTAS_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dTAS_max" name="dTAS_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dMach">马赫数</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dMach_min" name="dMach_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dMach_max" name="dMach_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attitude Parameters -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">姿态参数</h6>
+                        <div class="form-group">
+                            <label for="dAlpha">迎角 (度)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dAlpha_min" name="dAlpha_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dAlpha_max" name="dAlpha_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dBeta">侧滑角 (度)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dBeta_min" name="dBeta_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dBeta_max" name="dBeta_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dPhi">滚转角 (度)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dPhi_min" name="dPhi_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dPhi_max" name="dPhi_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dTheta">俯仰角 (度)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dTheta_min" name="dTheta_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dTheta_max" name="dTheta_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dPsi">偏航角 (度)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dPsi_min" name="dPsi_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dPsi_max" name="dPsi_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acceleration Parameters -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">加速度参数</h6>
+                        <div class="form-group">
+                            <label for="dNx">X轴过载</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dNx_min" name="dNx_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dNx_max" name="dNx_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dNy">Y轴过载</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dNy_min" name="dNy_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dNy_max" name="dNy_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dNz">Z轴过载</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dNz_min" name="dNz_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dNz_max" name="dNz_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dUkDot">X轴加速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dUkDot_min" name="dUkDot_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dUkDot_max" name="dUkDot_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dVkDot">Y轴加速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dVkDot_min" name="dVkDot_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dVkDot_max" name="dVkDot_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Angular Rates -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">角速率</h6>
+                        <div class="form-group">
+                            <label for="dP">滚转角速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dP_min" name="dP_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dP_max" name="dP_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dQ">俯仰角速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dQ_min" name="dQ_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dQ_max" name="dQ_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dR">偏航角速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dR_min" name="dR_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dR_max" name="dR_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dPDot">滚转角加速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dPDot_min" name="dPDot_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dPDot_max" name="dPDot_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dQDot">俯仰角加速度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dQDot_min" name="dQDot_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dQDot_max" name="dQDot_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Position and Navigation -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">位置与导航</h6>
+                        <div class="form-group">
+                            <label for="dLongitude">经度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.000001" id="dLongitude_min" name="dLongitude_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.000001" id="dLongitude_max" name="dLongitude_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dLatitude">纬度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.000001" id="dLatitude_min" name="dLatitude_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.000001" id="dLatitude_max" name="dLatitude_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dASL">海拔高度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dASL_min" name="dASL_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dASL_max" name="dASL_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dAGL">离地高度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dAGL_min" name="dAGL_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dAGL_max" name="dAGL_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dTrueHeading">真航向</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dTrueHeading_min" name="dTrueHeading_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dTrueHeading_max" name="dTrueHeading_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Surfaces -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">操纵面</h6>
+                        <div class="form-group">
+                            <label for="dtx">副翼偏度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dtx_min" name="dtx_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dtx_max" name="dtx_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dty">方向舵偏度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dty_min" name="dty_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dty_max" name="dty_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dtz">升降舵偏度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dtz_min" name="dtz_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dtz_max" name="dtz_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dFlap">襟翼偏度</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dFlap_min" name="dFlap_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dFlap_max" name="dFlap_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="LGPos">起落架位置</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="LGPos_min" name="LGPos_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="LGPos_max" name="LGPos_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engine Parameters -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">发动机参数</h6>
+                        <div class="form-group">
+                            <label for="pe_t1">油门杆位置1</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="pe_t1_min" name="pe_t1_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="pe_t1_max" name="pe_t1_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="pe_t2">油门杆位置2</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="pe_t2_min" name="pe_t2_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="pe_t2_max" name="pe_t2_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="rot1">发动机转速1</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="rot1_min" name="rot1_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="rot1_max" name="rot1_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="rot2">发动机转速2</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="rot2_min" name="rot2_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="rot2_max" name="rot2_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="thrust">发动机推力</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="thrust_min" name="thrust_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="thrust_max" name="thrust_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fuel Parameters -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">燃油参数</h6>
+                        <div class="form-group">
+                            <label for="gfuel">剩余油量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="gfuel_min" name="gfuel_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="gfuel_max" name="gfuel_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="gfused">耗油量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="gfused_min" name="gfused_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="gfused_max" name="gfused_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dGtNormal">燃油消耗率</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dGtNormal_min" name="dGtNormal_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dGtNormal_max" name="dGtNormal_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dGFuel">余油量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dGFuel_min" name="dGFuel_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dGFuel_max" name="dGFuel_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pilot Inputs -->
+                    <div class="space-y-2">
+                        <h6 class="font-semibold text-base border-b pb-2">驾驶员输入</h6>
+                        <div class="form-group">
+                            <label for="dDa">横向杆位移</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dDa_min" name="dDa_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dDa_max" name="dDa_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dDr">脚蹬位移</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dDr_min" name="dDr_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dDr_max" name="dDr_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dDe">纵向杆位移</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dDe_min" name="dDe_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dDe_max" name="dDe_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dDaTrim">配平滚转操纵量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dDaTrim_min" name="dDaTrim_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dDaTrim_max" name="dDaTrim_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dDeTrim">配平俯仰操纵量</label>
+                            <div class="flex space-x-2">
+                                <input type="number" step="0.01" id="dDeTrim_min" name="dDeTrim_min" placeholder="最小值" class="form-input">
+                                <input type="number" step="0.01" id="dDeTrim_max" name="dDeTrim_max" placeholder="最大值" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-6">
+                    <button type="reset" class="btn btn-outline-danger">重置</button>
+                    <button type="submit" class="btn btn-primary ltr:ml-4 rtl:mr-4">保存设置</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

@@ -3,19 +3,1296 @@
 
 {% block content %}
 
-    <script src="{% static 'js/simple-datatables.js' %}"></script>
+<script src="{% static 'js/simple-datatables.js' %}"></script>
 
-    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+<script defer src="{% static 'js/apexcharts.js' %}"></script>
 
-    <ul class="flex space-x-2 rtl:space-x-reverse">
-        <li>
-            <a href="javascript:;" class="text-primary hover:underline">飞行数据仪表盘</a>
-        </li>
-        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
-            <span>快速告警</span>
-        </li>
-    </ul>
+<script src="{% static 'js/dayjs.min.js' %}"></script>
 
-    <div class="pt-5">Hello World</div>
- 
+<ul class="flex space-x-2 rtl:space-x-reverse">
+    <li>
+        <a href="javascript:;" class="text-primary hover:underline">飞行数据仪表盘</a>
+    </li>
+    <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+        <span>实时监控</span>
+    </li>
+</ul>
+<div class="pt-5">
+    <!-- 重要飞行指标面板 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5" x-data="chart">
+        <!-- 第一个panel - 占2/3宽度 -->
+        <div class="panel lg:col-span-2">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-lg font-bold">飞行状态</div>
+                    <div class="text-success">QAR ID : {{qar_id}} </div>
+                </div>
+            </div>
+            <div class="relative mt-10">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div>
+                        <div class="text-primary">⛰️最高飞行高度</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_altitude}}m</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">✈️最大飞行速度</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_speed}}knot</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">🚀最大垂直速度</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_vertical_speed}}knot</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">⚙️最大马赫数</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_mach}}Ma</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">🛫最大爬升率</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_climb_rate}}</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">🛬最大下降率</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_descent_rate}}</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">🧭最大过载</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.max_g_force}}g</div>
+                    </div>
+                    <div>
+                        <div class="text-primary">🧭最小过载</div>
+                        <div class="mt-2 font-semibold text-2xl">{{stats.min_g_force}}g</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- 第二个panel - 占1/3宽度 -->
+        <div class="panel">
+            <div class="flex items-center mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">飞行时长</h5>
+            </div>
+            <div x-ref="fly_time_donutChart" class="bg-white dark:bg-black rounded-lg">
+            </div>
+        </div>
+    </div>
+
+    <!-- QAR属性 线性可视化部分 -->
+    <div class="flex flex-col xl:flex-row gap-5 relative mt-5" x-data="chart1" x-init="init()">
+        <!-- 左侧小型图表列表 -->
+        <div class="panel perfect-scrollbar absolute xl:relative p-0 flex-none w-80 border-0 overflow-visible lg:overflow-y-auto z-10 xl:block
+            divide-y divide-[#ebedf2] dark:divide-[#191e3a] hidden"
+            :class="{'!block h-full' : isShowChartMenu}">
+            
+            <template x-for="chart in charts">
+                <button type="button" class="w-full flex items-center p-4 hover:bg-gray-100 dark:hover:bg-[#192A3A]" 
+                    :class="{'bg-gray-100 dark:bg-[#192A3A]' : selectedChart.title === chart.title}" 
+                    @click="selectChart(chart)">
+                    
+                    <div class="ltr:pr-4 rtl:pl-4">
+                        <div class="flex items-baseline font-semibold">
+                            <div class="text-md ltr:mr-1 rtl:ml-1" x-text="chart.title"></div>
+                        </div>
+                        <div class="flex items-center mt-2">
+                            <div class="min-w-20 text-xl ltr:mr-3 rtl:ml-3" 
+                                x-text="`${chart.currentValue}${chart.unit}`"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧图表容器（固定宽度靠右） -->
+                    <div class="relative flex-shrink-0" style="width: 150px; height: 45px;">
+                        <div :id="'chart_'+chart.id" class="absolute inset-0 w-full h-full"></div>
+                    </div>
+                </button>
+            </template>
+        </div>
+    
+        <!-- 移动端遮罩层 -->
+        <div class="bg-black/60 z-[5] w-full h-full absolute rounded-md hidden" 
+            :class="{'!block xl:!hidden' : isShowChartMenu}" 
+            @click="isShowChartMenu = !isShowChartMenu"></div>
+    
+        <!-- 主图表区域 -->
+        <div class="panel p-0 flex-1">
+            <div class="md:flex items-center flex-wrap p-4 border-b border-[#ebedf2] dark:border-[#191e3a]">
+                <div class="flex-1 flex items-start ltr:pr-4 rtl:pl-4">
+                    <button type="button" class="xl:hidden hover:text-primary block ltr:mr-5 rtl:ml-5" 
+                        @click="isShowChartMenu = !isShowChartMenu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6">
+                            <path d="M20 7L4 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            <path opacity="0.5" d="M20 12L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M20 17L4 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                    </button>
+                    <div>
+                        <div class="flex items-center">
+                            <div class="ltr:mr-1 rtl:ml-1 text-md font-semibold" x-text="selectedChart.title"></div>
+                        </div>
+                        <div class="flex items-center mt-2">
+                            <div class="min-w-20 text-2xl ltr:mr-3 rtl:ml-3" 
+                                x-text="`${selectedChart.currentValue}${selectedChart.unit}`"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <ul class="ltr:md:ml-auto rtl:md:mr-auto grid grid-cols-2 sm:grid-cols-3 font-semibold sm:divide-x rtl:divide-x-reverse 
+                    divide-[#ebedf2] dark:divide-[#253b5c] text-white-dark mt-5 sm:mt-0">
+                    
+                    <li class="px-3 py-1">
+                        Max
+                        <span class="text-lg mt-1.5 block text-black dark:text-white-light" 
+                            x-text="`${selectedChart.maxValue}${selectedChart.unit}`"></span>
+                    </li>
+                    <li class="px-3 py-1">
+                        Min
+                        <span class="text-lg mt-1.5 block text-black dark:text-white-light" 
+                            x-text="`${selectedChart.minValue}${selectedChart.unit}`"></span>
+                    </li>
+                    <li class="px-3 py-1">
+                        Average
+                        <span class="text-lg mt-1.5 block text-black dark:text-white-light" 
+                            x-text="`${selectedChart.avgValue}${selectedChart.unit}`"></span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- 主图表容器 - 添加固定高度确保渲染 -->
+            <div class="flex-1 px-4 overflow-hidden">
+                <div x-ref="selectedChart" class="w-full" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <style>
+        /* 确保所有小预览图容器相同宽度 */
+        [id^="chart_"] {
+            width: 150px !important;
+            min-width: 150px !important;
+            max-width: 150px !important;
+            height: 45px !important;
+        }
+        
+        /* 图表画布设置 */
+        .apexcharts-canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        /* 按钮内部布局调整 */
+        .panel button {
+            align-items: center !important;
+            justify-content: space-between !important;
+        }
+    </style>
+    
+    <!--  -->
+    <div class="grid grid-cols-1 gap-5 mt-5" x-data="chart">
+        <!-- <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">飞行高度</h5>
+            </div>
+            <div x-ref="altitude_lineChart" class="bg-white dark:bg-black rounded-lg overflow-hidden"></div>
+        </div> -->
+
+        <!-- <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white">Simple Area</h5>
+            </div>
+            <div x-ref="areaChart" class="bg-white dark:bg-black rounded-lg overflow-hidden"></div>
+        </div> -->
+
+       
+    </div>
+</div>
+
+
+<script>
+    document.addEventListener("alpine:init", () => {
+        Alpine.data("chart", () => ({
+            // highlightjs
+            codeArr: [],
+            toggleCode(name) {
+                if (this.codeArr.includes(name)) {
+                    this.codeArr = this.codeArr.filter((d) => d != name);
+                } else {
+                    this.codeArr.push(name);
+
+                    setTimeout(() => {
+                        document.querySelectorAll('pre.code').forEach(el => {
+                            hljs.highlightElement(el);
+                        });
+                    });
+                }
+            },
+
+            // altitude_lineChart: null,
+            
+            // areaChart: null,
+            // columnChart: null,
+            // simpleColumnStacked: null,
+            // barChart: null,
+            // mixedChart: null,
+            // radarChart: null,
+            // pieChart: null,
+            fly_time_donutChart: null,
+            // polarAreaChart: null,
+            // radialBarChart: null,
+            // bubbleChart: null,
+
+            init() {
+                isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode ? true : false;
+                isRtl = this.$store.app.rtlClass === "rtl" ? true : false;
+
+                setTimeout(() => {
+                // this.altitude_lineChart = new ApexCharts(
+                //     this.$refs.altitude_lineChart,
+                //     this.lineChartOptions("飞行高度", {{ altitude_line| safe }}, {{ altitude_line| length }})
+                //     );
+                // this.altitude_lineChart.render();
+
+                
+                // this.areaChart = new ApexCharts(this.$refs.areaChart, this
+                //     .areaChartOptions);
+                // this.areaChart.render();
+
+                // this.columnChart = new ApexCharts(this.$refs.columnChart, this
+                //     .columnChartOptions);
+                // this.columnChart.render();
+
+                // this.simpleColumnStacked = new ApexCharts(this.$refs
+                //     .simpleColumnStacked, this.simpleColumnStackedOptions);
+                // this.simpleColumnStacked.render();
+
+                // this.barChart = new ApexCharts(this.$refs.barChart, this
+                //     .barChartOptions);
+                // this.barChart.render();
+
+                // this.mixedChart = new ApexCharts(this.$refs.mixedChart, this
+                //     .mixedChartOptions);
+                // this.mixedChart.render();
+
+                // this.radarChart = new ApexCharts(this.$refs.radarChart, this
+                //     .radarChartOptions);
+                // this.radarChart.render();
+
+                // this.pieChart = new ApexCharts(this.$refs.pieChart, this
+                //     .pieChartOptions);
+                // this.pieChart.render();
+
+                this.fly_time_donutChart = new ApexCharts(this.$refs.fly_time_donutChart, this
+                    .donutChartOptions);
+                this.fly_time_donutChart.render();
+
+                // this.polarAreaChart = new ApexCharts(this.$refs.polarAreaChart, this
+                //     .polarAreaChartOptions);
+                // this.polarAreaChart.render();
+
+                // this.radialBarChart = new ApexCharts(this.$refs.radialBarChart, this
+                //     .radialBarChartOptions);
+                // this.radialBarChart.render();
+
+                // this.bubbleChart = new ApexCharts(this.$refs.bubbleChart, this
+                //     .bubbleChartOptions);
+                // this.bubbleChart.render();
+                                }, 300);
+
+                this.$watch('$store.app.theme', () => {
+                    this.refreshOptions();
+                })
+
+                this.$watch('$store.app.rtlClass', () => {
+                    this.refreshOptions();
+                })
+                
+                },
+
+                refreshOptions() {
+                    isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode ? true : false;
+                    isRtl = this.$store.app.rtlClass === "rtl" ? true : false;
+                    this.lineChart.updateOptions(this.lineChartOptions);
+                    this.areaChart.updateOptions(this.areaChartOptions);
+                    this.columnChart.updateOptions(this.columnChartOptions);
+                    this.simpleColumnStacked.updateOptions(this.simpleColumnStackedOptions);
+                    this.barChart.updateOptions(this.barChartOptions);
+                    this.mixedChart.updateOptions(this.mixedChartOptions);
+                    this.radarChart.updateOptions(this.radarChartOptions);
+                    this.pieChart.updateOptions(this.pieChartOptions);
+                    this.fly_time_donutChart.updateOptions(this.donutChartOptions);
+                    this.polarAreaChart.updateOptions(this.polarAreaChartOptions);
+                    this.radialBarChart.updateOptions(this.radialBarChartOptions);
+                    this.bubbleChart.updateOptions(this.bubbleChartOptions);
+                },
+
+
+                lineChartOptions(seriesName, seriesData, dataLength) {
+                    return {
+                        chart: {
+                            height: 300,
+                            type: 'line',
+                            toolbar: false
+                        },
+                        colors: ['#4361ee'],
+                        tooltip: {
+                            marker: false,
+                            y: {
+                                formatter(number) {
+                                    return '$' + number
+                                }
+                            }
+                        },
+                        stroke: {
+                            width: 2,
+                            curve: 'smooth'
+                        },
+                        xaxis: {
+                            categories: Array(dataLength).fill().map((_, i) => `${i}s`),
+                            labels: {
+                                formatter: function (value, index) {
+                                    const seconds = parseInt(value);
+                                    if ((seconds + 1) % 300 === 0) {
+                                        return `${(seconds + 1) / 100}s`;
+                                    }
+                                    else if (seconds === 0) {
+                                        return value;
+                                    }
+                                    return "";
+                                }
+                            },
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -20 : 0,
+                            }
+                        },
+                        series: [{
+                            name: seriesName,
+                            data: seriesData,
+                        }],
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+            
+    
+            
+                areaChartOptions(seriesName, seriesData, dataLength) {
+                    return {
+                        series: [{
+                            name: seriesName,
+                            data: seriesData
+                        }],
+                        chart: {
+                            type: 'area',
+                            height: 300,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#805dca'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            width: 2,
+                            curve: 'smooth'
+                        },
+                        xaxis: {
+                            categories: Array(dataLength).fill().map((_, i) => `${i}s`),
+                            labels: {
+                                formatter: function (value, index) {
+                                    const seconds = parseInt(value);
+                                    if ((seconds + 1) % 300 === 0) {
+                                        return `${(seconds + 1) / 100}s`;
+                                    }
+                                    else if (seconds === 0) {
+                                        return value;
+                                    }
+                                    return "";
+                                }
+                            },
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -40 : 0,
+                            }
+                        },
+                        legend: {
+                            horizontalAlign: 'left'
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+                
+                get columnChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Net Profit',
+                            data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+                        }, {
+                            name: 'Revenue',
+                            data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#805dca', '#e7515a'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            show: true,
+                            width: 2,
+                            colors: ['transparent']
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: false,
+                                columnWidth: '55%',
+                                endingShape: 'rounded'
+                            },
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed'
+                        },
+                        xaxis: {
+                            categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
+                                'Sep', 'Oct'
+                            ],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                            y: {
+                                formatter: function (val) {
+                                    return val;
+                                },
+                            },
+                        },
+                    }
+                },
+                
+                get simpleColumnStackedOptions() {
+                    return {
+                        series: [{
+                            name: 'PRODUCT A',
+                            data: [44, 55, 41, 67, 22, 43]
+                        },
+                        {
+                            name: 'PRODUCT B',
+                            data: [13, 23, 20, 8, 13, 27]
+                        },
+                        ],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            stacked: true,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#2196f3', '#3b3f5c'],
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                legend: {
+                                    position: 'bottom',
+                                    offsetX: -10,
+                                    offsetY: 5
+                                }
+                            }
+                        }],
+                        plotOptions: {
+                            bar: {
+                                horizontal: false
+                            }
+                        },
+                        xaxis: {
+                            type: 'datetime',
+                            categories: ['01/01/2011 GMT', '01/02/2011 GMT', '01/03/2011 GMT',
+                                '01/04/2011 GMT', '01/05/2011 GMT', '01/06/2011 GMT'
+                            ],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -20 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed'
+                        },
+                        legend: {
+                            position: 'right',
+                            offsetY: 40
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light'
+                        },
+                        fill: {
+                            opacity: 0.8
+                        }
+                    }
+                },
+                
+                get barChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Sales',
+                            data: [44, 55, 41, 67, 22, 43, 21, 70]
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'bar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            show: true,
+                            width: 1
+                        },
+                        colors: ['#4361ee'],
+                        xaxis: {
+                            categories: ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat'],
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            opposite: isRtl ? true : false,
+                            reversed: isRtl ? true : false,
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        plotOptions: {
+                            bar: {
+                                horizontal: true,
+                            }
+                        },
+                        fill: {
+                            opacity: 0.8
+                        }
+                    }
+                },
+                
+                get mixedChartOptions() {
+                    return {
+                        series: [{
+                            name: 'TEAM A',
+                            type: 'column',
+                            data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30]
+                        }, {
+                            name: 'TEAM B',
+                            type: 'area',
+                            data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43]
+                        },
+                        {
+                            name: 'TEAM C',
+                            type: 'line',
+                            data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39]
+                        }
+                        ],
+                        chart: {
+                            height: 300,
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#2196f3', '#00ab55', '#4361ee'],
+                        stroke: {
+                            width: [0, 2, 2],
+                            curve: 'smooth'
+                        },
+                        plotOptions: {
+                            bar: {
+                                columnWidth: '50%'
+                            }
+                        },
+                        fill: {
+                            opacity: [1, 0.25, 1],
+                        },
+
+                        labels: ['01/01/2022', '02/01/2022', '03/01/2022', '04/01/2022',
+                            '05/01/2022', '06/01/2022', '07/01/2022',
+                            '08/01/2022', '09/01/2022', '10/01/2022', '11/01/2022'
+                        ],
+                        markers: {
+                            size: 0
+                        },
+                        xaxis: {
+                            type: 'datetime',
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            title: {
+                                text: 'Points',
+                            },
+                            min: 0,
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            shared: true,
+                            intersect: false,
+                            theme: isDark ? 'dark' : 'light',
+                            y: {
+                                formatter: (y) => {
+                                    if (typeof y !== "undefined") {
+                                        return y.toFixed(0) + " points";
+                                    }
+                                    return y;
+                                }
+                            }
+                        },
+                        legend: {
+                            itemMargin: {
+                                horizontal: 4,
+                                vertical: 8
+                            }
+                        }
+                    }
+                },
+                
+                get radarChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Series 1',
+                            data: [80, 50, 30, 40, 100, 20],
+                        }],
+                        chart: {
+                            height: 300,
+                            type: 'radar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee'],
+                        xaxis: {
+                            categories: ['January', 'February', 'March', 'April', 'May', 'June'],
+                        },
+                        plotOptions: {
+                            radar: {
+                                polygons: {
+                                    strokeColors: isDark ? '#191e3a' : '#e0e6ed',
+                                    connectorColors: isDark ? '#191e3a' : '#e0e6ed',
+                                }
+                            }
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        }
+                    }
+                },
+                
+                get pieChartOptions() {
+                    return {
+                        series: [44, 55, 13, 43, 22],
+                        chart: {
+                            height: 300,
+                            type: 'pie',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        labels: ['Team A', 'Team B', 'Team C', 'Team D', 'Team E'],
+                        colors: ['#4361ee', '#805dca', '#00ab55', '#e7515a', '#e2a03f'],
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                chart: {
+                                    width: 200
+                                }
+                            }
+                        }],
+                        stroke: {
+                            show: false,
+                        },
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                },
+                
+                            
+
+                get donutChartOptions() {
+                    return {
+                        series: [5, 20, 5],
+                        chart: {
+                            type: 'donut',
+                            height: 300,
+                            fontFamily: 'Nunito, sans-serif',
+                        },
+                        dataLabels: {
+                            enabled: false
+                        },
+                        stroke: {
+                            show: true,
+                            width: 25,
+                            colors: isDark ? '#0e1726' : '#fff'
+                        },
+                        colors: isDark ? ['#5c1ac3', '#e2a03f', '#e7515a', '#e2a03f'] : ['#e2a03f', '#5c1ac3', '#e7515a'],
+                        legend: {
+                            position: 'bottom',
+                            horizontalAlign: 'center',
+                            fontSize: '14px',
+                            markers: {
+                                width: 10,
+                                height: 10,
+                                offsetX: -2,
+                            },
+                            height: 50,
+                            offsetY: 20,
+                        },
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '50%',
+                                    background: 'transparent',
+                                    labels: {
+                                        show: true,
+                                        name: {
+                                            show: true,
+                                            fontSize: '20px',
+                                            offsetY: -10
+                                        },
+                                        value: {
+                                            show: true,
+                                            fontSize: '18px',
+                                            color: isDark ? '#bfc9d4' : undefined,
+                                            offsetY: 10,
+                                            formatter: (val) => {
+                                                return val;
+                                            },
+                                        },
+                                        total: {
+                                            show: true,
+                                            label: '时长',
+                                            color: '#888ea8',
+                                            fontSize: '20px',
+                                            formatter: (w) => {
+                                                return w.globals.seriesTotals.reduce(function(a, b) {
+                                                    return a + b;
+                                                }, 0);
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        labels: ['起飞', '巡航', '降落'],
+                        states: {
+                            hover: {
+                                filter: {
+                                    type: 'none',
+                                    value: 0.15,
+                                }
+                            },
+                            active: {
+                                filter: {
+                                    type: 'none',
+                                    value: 0.15,
+                                }
+                            },
+                        }
+                    }
+                },
+
+                get polarAreaChartOptions() {
+                    return {
+                        series: [14, 23, 21, 17, 15, 10, 12, 17, 21],
+                        chart: {
+                            height: 300,
+                            type: 'polarArea',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#805dca', '#00ab55', '#e7515a', '#e2a03f', '#2196f3',
+                            '#3b3f5c'
+                        ],
+                        stroke: {
+                            show: false,
+                        },
+                        responsive: [{
+                            breakpoint: 480,
+                            options: {
+                                chart: {
+                                    width: 200
+                                }
+                            }
+                        }],
+                        plotOptions: {
+                            polarArea: {
+                                rings: {
+                                    strokeColor: isDark ? '#191e3a' : '#e0e6ed',
+                                },
+                                spokes: {
+                                    connectorColors: isDark ? '#191e3a' : '#e0e6ed',
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                        },
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+                
+                get radialBarChartOptions() {
+                    return {
+                        series: [44, 55, 41],
+                        chart: {
+                            height: 300,
+                            type: 'radialBar',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#805dca', '#e2a03f'],
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        plotOptions: {
+                            radialBar: {
+                                dataLabels: {
+                                    name: {
+                                        fontSize: '22px',
+                                    },
+                                    value: {
+                                        fontSize: '16px',
+                                    },
+                                    total: {
+                                        show: true,
+                                        label: 'Total',
+                                        formatter: function (w) {
+                                            return 249
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        labels: ['Apples', 'Oranges', 'Bananas'],
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+                
+                get bubbleChartOptions() {
+                    return {
+                        series: [{
+                            name: 'Bubble1',
+                            data: this.generateData(new Date('11 Feb 2017 GMT').getTime(),
+                                20, {
+                                min: 10,
+                                max: 60
+                            })
+                        },
+                        {
+                            name: 'Bubble2',
+                            data: this.generateData(new Date('11 Feb 2017 GMT').getTime(),
+                                20, {
+                                min: 10,
+                                max: 60
+                            })
+                        },
+                        ],
+                        chart: {
+                            height: 300,
+                            type: 'bubble',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee', '#00ab55'],
+                        dataLabels: {
+                            enabled: false
+                        },
+                        xaxis: {
+                            tickAmount: 12,
+                            type: 'category',
+                            axisBorder: {
+                                color: isDark ? '#191e3a' : '#e0e6ed'
+                            },
+                        },
+                        yaxis: {
+                            max: 70,
+                            opposite: isRtl ? true : false,
+                            labels: {
+                                offsetX: isRtl ? -10 : 0,
+                            }
+                        },
+                        grid: {
+                            borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                        },
+                        tooltip: {
+                            theme: isDark ? 'dark' : 'light',
+                        },
+                        stroke: {
+                            colors: isDark ? ['#191e3a'] : ['#e0e6ed'],
+                        },
+                        fill: {
+                            opacity: 0.85
+                        }
+                    }
+                },
+
+                generateData(baseval, count, yrange) {
+                    var i = 0;
+                    var series = [];
+                    while (i < count) {
+                        var x = Math.floor(Math.random() * (750 - 1 + 1)) + 1;;
+                        var y = Math.floor(Math.random() * (yrange.max - yrange.min + 1)) + yrange.min;
+                        var z = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
+
+                        series.push([x, y, z]);
+                        baseval += 86400000;
+                        i++;
+                    }
+                    return series;
+                }
+            }));
+        });
+</script>
+
+<script>
+    document.addEventListener("alpine:init", () => {
+        Alpine.data("chart1", () => ({
+            // 当前选中的图表
+            selectedChart: null,
+            // 是否显示左侧菜单(移动端)
+            isShowChartMenu: false,
+            // 存储所有图表实例
+            chartInstances: {},
+            mainChartInstance: null,
+            // 主题状态
+            isDark: false,
+            isRtl: false,
+            
+            // 所有图表数据
+            charts: [
+                {
+                    id: 'altitude',
+                    title: '飞行高度',
+                    data: {{ altitude_line|safe }},
+                    color: '#4361ee',
+                    unit: 'm',
+                    currentValue: {{ stats.avg_altitude|default:0 }},
+                    maxValue: {{ stats.max_altitude|default:0 }},
+                    minValue: {{ stats.min_altitude|default:0 }},
+                    avgValue: {{ stats.avg_altitude|default:0 }}
+                },
+                {
+                    id: 'speed',
+                    title: '飞行速度',
+                    data: {{ speed_line|safe }},
+                    color: '#00ab55',
+                    unit: 'knot',
+                    currentValue: {{ stats.avg_speed|default:0 }},
+                    maxValue: {{ stats.max_speed|default:0 }},
+                    minValue: {{ stats.min_speed|default:0 }},
+                    avgValue: {{ stats.avg_speed|default:0 }}
+                },
+                {
+                    id: 'vertical_speed',
+                    title: '垂直速度',
+                    data: {{ vertical_speed_line|safe }},
+                    color: '#e7515a',
+                    unit: 'knot',
+                    currentValue: {{ stats.avg_vertical_speed|default:0 }},
+                    maxValue: {{ stats.max_vertical_speed|default:0 }},
+                    minValue: {{ stats.min_vertical_speed|default:0 }},
+                    avgValue: {{ stats.avg_vertical_speed|default:0 }}
+                },
+                {
+                    id: 'roll',
+                    title: '滚转角',
+                    data: {{ roll_angle_line|safe }},
+                    color: '#e2a03f',
+                    unit: '°',
+                    currentValue: {{ stats.avg_roll_angle|default:0 }},
+                    maxValue: {{ stats.max_roll_angle|default:0 }},
+                    minValue: {{ stats.min_roll_angle|default:0 }},
+                    avgValue: {{ stats.avg_roll_angle|default:0 }}
+                },
+                {
+                    id: 'pitch',
+                    title: '俯仰角',
+                    data: {{ pitch_angle_line|safe }},
+                    color: '#2196f3',
+                    unit: '°',
+                    currentValue: {{ stats.avg_pitch_angle|default:0 }},
+                    maxValue: {{ stats.max_pitch_angle|default:0 }},
+                    minValue: {{ stats.min_pitch_angle|default:0 }},
+                    avgValue: {{ stats.avg_pitch_angle|default:0 }}
+                },
+            ],
+            
+            init() {
+                // 初始化主题状态
+                this.isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode;
+                this.isRtl = this.$store.app.rtlClass === "rtl";
+                
+                // 设置默认选中的图表
+                this.selectedChart = this.charts[0];
+                
+                // 确保DOM完全渲染后初始化
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        this.initAllCharts();
+                        this.setupThemeWatchers();
+                    }, 100);
+                });
+            },
+            
+            initAllCharts() {
+                // 初始化小图表
+                this.charts.forEach(chart => {
+                    const element = document.getElementById(`chart_${chart.id}`);
+                    if (!element) {
+                        console.error(`无法找到图表容器: chart_${chart.id}`);
+                        return;
+                    }
+                    
+                    // 销毁旧实例
+                    if (this.chartInstances[chart.id]) {
+                        this.chartInstances[chart.id].destroy();
+                    }
+                    
+                    // 创建新实例
+                    this.chartInstances[chart.id] = new ApexCharts(
+                        element,
+                        this.getMiniChartOptions(chart)
+                    );
+                    this.chartInstances[chart.id].render();
+                });
+                
+                // 初始化主图表
+                this.initMainChart();
+            },
+            
+            initMainChart() {
+                const element = this.$refs.selectedChart;
+                if (!element || !this.selectedChart) {
+                    console.error('主图表容器或数据未准备好');
+                    return;
+                }
+
+                // 销毁旧实例
+                if (this.mainChartInstance) {
+                    this.mainChartInstance.destroy();
+                }
+
+                // 确保容器可见
+                element.style.display = 'block';
+                
+                // 创建新实例
+                this.mainChartInstance = new ApexCharts(
+                    element,
+                    this.getMainChartOptions(this.selectedChart)
+                );
+                this.mainChartInstance.render();
+                
+                // 强制重绘（解决某些浏览器渲染问题）
+                setTimeout(() => {
+                    this.mainChartInstance.updateOptions({});
+                }, 100);
+            },
+            
+            getMiniChartOptions(chart) {
+                return {
+                    series: [{ data: chart.data || [] }],
+                    chart: {
+                        type: 'line',
+                        sparkline: { enabled: true },
+                        height: 45,
+                        width: 150,
+                        animations: { enabled: false }
+                    },
+                    stroke: {
+                        width: 2,
+                        colors: [chart.color]
+                    },
+                    colors: [chart.color],
+                    tooltip: { enabled: false },
+                    markers: { size: 0 },
+                    grid: { show: false },
+                    xaxis: { labels: { show: false } },
+                    yaxis: { show: false }
+                };
+            },
+            
+            getMainChartOptions(chart) {
+                return {
+                    series: [{
+                        name: chart.title,
+                        data: chart.data || []
+                    }],
+                    chart: {
+                        type: 'area',
+                        height: '120%',
+                        animations: { enabled: false },
+                        toolbar: { show: false }
+                    },
+                    stroke: {
+                        width: 2,
+                        curve: 'smooth',
+                        colors: [chart.color]
+                    },
+                    dataLabels: {
+                        enabled: false
+                    },
+                    colors: [chart.color],
+                    xaxis: {
+                        categories: Array(chart.data.length).fill().map((_, i) => `${i}s`),
+                        labels: {
+                            formatter: (value) => {
+                                const seconds = parseInt(value);
+                                if ((seconds + 1) % 300 === 0) {
+                                    return `${(seconds + 1) / 100}s`;
+                                }
+                                else if (seconds === 0) {
+                                    return value;
+                                }
+                                return "";
+                            }
+                        },
+                        axisBorder: {
+                            color: this.isDark ? '#191e3a' : '#e0e6ed'
+                        }
+                    },
+                    yaxis: {
+                        opposite: this.isRtl,
+                        labels: {
+                            offsetX: this.isRtl ? -20 : 0
+                        },
+                        title: { text: chart.unit }
+                    },
+                    grid: {
+                        borderColor: this.isDark ? '#191e3a' : '#e0e6ed'
+                    },
+                    tooltip: {
+                        y: {
+                            formatter: (value) => `${value.toFixed(2)} ${chart.unit}`
+                        },
+                        theme: this.isDark ? 'dark' : 'light'
+                    }
+                };
+            },
+            
+            // 设置主题监听
+            setupThemeWatchers() {
+                this.$watch('$store.app.theme', () => {
+                    this.isDark = this.$store.app.theme === "dark" || this.$store.app.isDarkMode;
+                    this.refreshOptions();
+                });
+    
+                this.$watch('$store.app.rtlClass', () => {
+                    this.isRtl = this.$store.app.rtlClass === "rtl";
+                    this.refreshOptions();
+                });
+            },
+            
+            // 选择图表
+            selectChart(chart) {
+                this.selectedChart = chart;
+                this.initMainChart();
+                this.isShowChartMenu = false;
+            },
+            
+            // 刷新所有图表选项
+            refreshOptions() {
+                // 更新小型预览图
+                this.charts.forEach(chart => {
+                    if (this.chartInstances[chart.id]) {
+                        this.chartInstances[chart.id].updateOptions({
+                            colors: [chart.color]
+                        });
+                    }
+                });
+                
+                // 更新主图表
+                if (this.mainChartInstance && this.selectedChart) {
+                    this.mainChartInstance.updateOptions(this.getMainChartOptions(this.selectedChart));
+                }
+            }
+        }));
+    });
+</script>
+
+
 {% endblock %}

@@ -4,7 +4,6 @@
 {% block content %}
 
     <script src="{% static 'js/simple-datatables.js' %}"></script>
-
     <script defer src="{% static 'js/apexcharts.js' %}"></script>
 
     <ul class="flex space-x-2 rtl:space-x-reverse">
@@ -16,6 +15,341 @@
         </li>
     </ul>
 
-    <div class="pt-5">Hello World</div>
+    <div class="pt-5">
+        <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">QAR数据质量监控</h5>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 正常状态 -->
+                <div class="flex flex-col items-center">
+                    <div class="wave-container" data-percent="5">
+                        <div class="wave-bg"></div>
+                        <div class="wave-animation" style="background: #10B981;"></div>
+                        <div class="wave-percent">5%</div>
+                    </div>
+                    <h3 class="mt-4 text-lg font-medium">正常状态</h3>
+                    <p class="text-gray-500 mt-1">数据缺失率</p>
+                </div>
+
+                <!-- 结冰状态 -->
+                <div class="flex flex-col items-center">
+                    <div class="wave-container" data-percent="12">
+                        <div class="wave-bg"></div>
+                        <div class="wave-animation" style="background: #3B82F6;"></div>
+                        <div class="wave-percent">12%</div>
+                    </div>
+                    <h3 class="mt-4 text-lg font-medium">结冰状态</h3>
+                    <p class="text-gray-500 mt-1">数据缺失率</p>
+                </div>
+
+                <!-- 单发失效 -->
+                <div class="flex flex-col items-center">
+                    <div class="wave-container" data-percent="18">
+                        <div class="wave-bg"></div>
+                        <div class="wave-animation" style="background: #F59E0B;"></div>
+                        <div class="wave-percent">18%</div>
+                    </div>
+                    <h3 class="mt-4 text-lg font-medium">单发失效</h3>
+                    <p class="text-gray-500 mt-1">数据缺失率</p>
+                </div>
+
+                <!-- 双发失效 -->
+                <div class="flex flex-col items-center">
+                    <div class="wave-container" data-percent="25">
+                        <div class="wave-bg"></div>
+                        <div class="wave-animation" style="background: #EF4444;"></div>
+                        <div class="wave-percent">25%</div>
+                    </div>
+                    <h3 class="mt-4 text-lg font-medium">双发失效</h3>
+                    <p class="text-gray-500 mt-1">数据缺失率</p>
+                </div>
+
+                <!-- 低能量 -->
+                <div class="flex flex-col items-center">
+                    <div class="wave-container" data-percent="15">
+                        <div class="wave-bg"></div>
+                        <div class="wave-animation" style="background: #8B5CF6;"></div>
+                        <div class="wave-percent">15%</div>
+                    </div>
+                    <h3 class="mt-4 text-lg font-medium">低能量</h3>
+                    <p class="text-gray-500 mt-1">数据缺失率</p>
+                </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="mt-8">
+                <h5 class="font-semibold text-lg dark:text-white-light mb-4">详细数据</h5>
+                <div class="table-responsive">
+                    <table class="table-hover">
+                        <thead>
+                            <tr>
+                                <th>状态类型</th>
+                                <th>数据缺失率</th>
+                                <th>数据完整性</th>
+                                <th>记录数</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>正常状态</td>
+                                <td>5%</td>
+                                <td>95%</td>
+                                <td>1,245</td>
+                                <td><span class="badge bg-success">正常</span></td>
+                            </tr>
+                            <tr>
+                                <td>结冰状态</td>
+                                <td>12%</td>
+                                <td>88%</td>
+                                <td>328</td>
+                                <td><span class="badge bg-primary">警告</span></td>
+                            </tr>
+                            <tr>
+                                <td>单发失效</td>
+                                <td>18%</td>
+                                <td>82%</td>
+                                <td>156</td>
+                                <td><span class="badge bg-warning">注意</span></td>
+                            </tr>
+                            <tr>
+                                <td>双发失效</td>
+                                <td>25%</td>
+                                <td>75%</td>
+                                <td>42</td>
+                                <td><span class="badge bg-danger">严重</span></td>
+                            </tr>
+                            <tr>
+                                <td>低能量</td>
+                                <td>15%</td>
+                                <td>85%</td>
+                                <td>87</td>
+                                <td><span class="badge bg-secondary">警告</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="panel mt-5">
+            <!-- 按字段统计的表格 -->
+            <div class="mb-8">
+                <h5 class="font-semibold text-lg dark:text-white-light mb-4">各字段缺失率统计</h5>
+                <div class="table-responsive">
+                    <table class="table-hover">
+                        <thead>
+                            <tr>
+                                <th>字段名称</th>
+                                <th>中文描述</th>
+                                <th>缺失率</th>
+                                <th>缺失记录数</th>
+                                <th>数据完整性</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>dGravityAcc</td>
+                                <td>重力加速度</td>
+                                <td>1%</td>
+                                <td>12</td>
+                                <td>99%</td>
+                                <td><span class="badge bg-success">完整</span></td>
+                            </tr>
+                            <tr>
+                                <td>dUwg</td>
+                                <td>风速沿地轴X轴的分量</td>
+                                <td>15%</td>
+                                <td>187</td>
+                                <td>85%</td>
+                                <td><span class="badge bg-warning">警告</span></td>
+                            </tr>
+                            <tr>
+                                <td>dVwg</td>
+                                <td>风速沿地轴Y轴的分量</td>
+                                <td>18%</td>
+                                <td>224</td>
+                                <td>82%</td>
+                                <td><span class="badge bg-warning">警告</span></td>
+                            </tr>
+                            <tr>
+                                <td>dWwg</td>
+                                <td>风速沿地轴Z轴的分量</td>
+                                <td>22%</td>
+                                <td>274</td>
+                                <td>78%</td>
+                                <td><span class="badge bg-danger">严重</span></td>
+                            </tr>
+                            <tr>
+                                <td>dUTrub</td>
+                                <td>紊流沿机体轴X轴的分量</td>
+                                <td>45%</td>
+                                <td>560</td>
+                                <td>55%</td>
+                                <td><span class="badge bg-danger">严重</span></td>
+                            </tr>
+                            <tr>
+                                <td>dVTrub</td>
+                                <td>紊流沿机体轴Y轴的分量</td>
+                                <td>48%</td>
+                                <td>598</td>
+                                <td>52%</td>
+                                <td><span class="badge bg-danger">严重</span></td>
+                            </tr>
+                            <tr>
+                                <td>dWTrub</td>
+                                <td>紊流沿机体轴Z轴的分量</td>
+                                <td>50%</td>
+                                <td>623</td>
+                                <td>50%</td>
+                                <td><span class="badge bg-danger">严重</span></td>
+                            </tr>
+                            <!-- 更多字段... -->
+                            <tr>
+                                <td>dMass</td>
+                                <td>飞机质量</td>
+                                <td>3%</td>
+                                <td>37</td>
+                                <td>97%</td>
+                                <td><span class="badge bg-success">完整</span></td>
+                            </tr>
+                            <tr>
+                                <td>dAlpha</td>
+                                <td>迎角</td>
+                                <td>8%</td>
+                                <td>100</td>
+                                <td>92%</td>
+                                <td><span class="badge bg-primary">良好</span></td>
+                            </tr>
+                            <tr>
+                                <td>dBeta</td>
+                                <td>侧滑角</td>
+                                <td>10%</td>
+                                <td>120</td>
+                                <td>90%</td>
+                                <td><span class="badge bg-primary">良好</span></td>
+                            </tr>
+                            <tr>
+                                <td>dP</td>
+                                <td>机体滚转角速度</td>
+                                <td>5%</td>
+                                <td>60</td>
+                                <td>95%</td>
+                                <td><span class="badge bg-success">完整</span></td>
+                            </tr>   
+                            <tr>
+                                <td>dQ</td>
+                                <td>机体俯仰角速度</td>
+                                <td>7%</td>
+                                <td>85</td>
+                                <td>93%</td>
+                                <td><span class="badge bg-primary">良好</span></td>
+                            <!-- 可以继续添加更多字段 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .wave-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f1f1f1;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .wave-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #f1f1f1;
+            z-index: 1;
+        }
+        
+        .wave-animation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0;
+            opacity: 0.8;
+            z-index: 2;
+            transition: height 1s ease-out;
+        }
+        
+        .wave-animation:before,
+        .wave-animation:after {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -180%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.4);
+            border-radius: 40%;
+            animation: wave 6s linear infinite;
+            z-index: 3;
+        }
+        
+        .wave-animation:after {
+            background: rgba(255,255,255,0.2);
+            animation: wave 12s linear infinite;
+            border-radius: 38%;
+        }
+        
+        .wave-percent {
+            position: relative;
+            font-size: 20px;
+            font-weight: bold;
+            color: #111827;
+            z-index: 4;
+        }
+        
+        @keyframes wave {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化波浪效果
+            const waveContainers = document.querySelectorAll('.wave-container');
+            
+            waveContainers.forEach(container => {
+                const percent = parseInt(container.getAttribute('data-percent'));
+                const wave = container.querySelector('.wave-animation');
+                
+                // 设置波浪高度
+                setTimeout(() => {
+                    wave.style.height = `${percent}%`;
+                }, 100);
+                
+                // 根据百分比调整波浪颜色透明度
+                if (percent > 20) {
+                    wave.style.opacity = '0.9';
+                } else if (percent > 10) {
+                    wave.style.opacity = '0.8';
+                } else {
+                    wave.style.opacity = '0.7';
+                }
+            });
+        });
+    </script>
  
 {% endblock %}

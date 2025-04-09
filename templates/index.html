@@ -3,26 +3,25 @@
 
 {% block content %}
 
-    <script src="{% static 'js/simple-datatables.js' %}"></script>
+<script src="{% static 'js/simple-datatables.js' %}"></script>
+<script defer src="{% static 'js/apexcharts.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
 
-    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/highlight.min.css' %}">
+<script src="{% static 'js/highlight.min.js' %}"></script>
 
-    <!-- start hightlight js -->
-    <link rel="stylesheet" href="{% static 'css/highlight.min.css' %}">
-    <script src="{% static 'js/highlight.min.js' %}"></script>
-    <!-- end hightlight js -->
+<div>
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行品质监控系统</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>数据大屏</span>
+        </li>
+    </ul>
+</div>
 
-    <div>
-        <ul class="flex space-x-2 rtl:space-x-reverse">
-            <li>
-                <a href="javascript:;" class="text-primary hover:underline">飞行品质监控系统</a>
-            </li>
-            <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
-                <span>数据大屏</span>
-            </li>
-        </ul>
-    </div>
 
-   <div class="pt-5"> Hello World</div>
 
 {% endblock %}

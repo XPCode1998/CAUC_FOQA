@@ -4,7 +4,6 @@
 {% block content %}
 
     <script src="{% static 'js/simple-datatables.js' %}"></script>
-
     <script defer src="{% static 'js/apexcharts.js' %}"></script>
 
     <ul class="flex space-x-2 rtl:space-x-reverse">
@@ -15,7 +14,226 @@
             <span>数据质量提升</span>
         </li>
     </ul>
+    <div class="pt-5">
+        <div class="grid xl:grid-cols-1 gap-6 mb-6">
+            <div x-data="custom">
+                <div class="space-y-10">
+                    <div class="panel sticky-header">
+                        <h5 class="md:absolute md:top-[25px] md:mb-0 mb-5 font-semibold text-lg dark:text-white-light">QAR数据</h5>
+                        <table id="myTable1" class="whitespace-nowrap table-checkbox table-striped table-hover"></table>
+                        
+                        <!-- 分页导航 -->
+                        <div class="mt-4 flex flex-col sm:flex-row justify-between items-center">
+                            <p class="text-sm text-gray-700 mb-2 sm:mb-0 dark:text-white-light">
+                                显示 <span class="font-medium">{{ page_obj.start_index }}</span> 到 <span class="font-medium">{{ page_obj.end_index }}</span> 条，共 <span class="font-medium">{{ page_obj.paginator.count }}</span> 条
+                            </p>
+                        
+                            <ul class="inline-flex items-center space-x-1 rtl:space-x-reverse mb-4 sm:mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li>
+                                        <a href="?page=1" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.previous_page_number }}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                        
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li>
+                                            <span class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-primary text-white dark:text-white-light dark:bg-primary">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li>
+                                            <a href="?page={{ num }}" class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                        
+                                {% if page_obj.has_next %}
+                                    <li>
+                                        <a href="?page={{ page_obj.next_page_number }}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.paginator.num_pages }}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 新增数据修复按钮 -->
+                    <div class="panel">
+                        <div class="flex items-center justify-between mb-5">
+                            <h5 class="font-semibold text-lg dark:text-white-light">数据修复操作</h5>
+                            <a class="font-semibold hover:text-gray-400 dark:text-gray-400 dark:hover:text-gray-600" href="javascript:;">
+                                <span class="flex items-center">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 ltr:mr-2 rtl:ml-2">
+                                        <path d="M17 7.82959L18.6965 9.35641C20.239 10.7447 21.0103 11.4389 21.0103 12.3296C21.0103 13.2203 20.239 13.9145 18.6965 15.3028L17 16.8296" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                        <path opacity="0.5" d="M13.9868 5L10.0132 19.8297" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M7.00005 7.82959L5.30358 9.35641C3.76102 10.7447 2.98975 11.4389 2.98975 12.3296C2.98975 13.2203 3.76102 13.9145 5.30358 15.3028L7.00005 16.8296" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="mb-5">
+                            <div class="flex items-center justify-center">
+                                <form id="repairForm" method="post" action="{% url 'qar_imputation' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="repair_data">
+                                    <button type="button" class="btn btn-success" @click="submitRepair">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                                        </svg>
+                                        数据修复
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="pt-5">Hello World</div>
- 
+
+    <style>
+        .nan-cell {
+            background-color: #fff4f4;
+            color: #ff0000;
+            font-weight: bold;
+        }
+        .dark .nan-cell {
+            background-color: #4a1a1a;
+            color: #ff6b6b;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("custom", () => ({
+                ids1: [],
+                datatable1: null,
+                tableData1: {{ table_data |safe }},
+                init() {
+                    // 直接使用原始数据，在渲染时处理NaN值
+                    this.datatable1 = new simpleDatatables.DataTable('#myTable1', {
+                        data: {
+                            headings: {{ table_headings|safe }},
+                            data: this.tableData1,
+                        },
+                        paging: false,
+                        perPage: 20,
+                        columns: this.generateColumns(),
+                        firstLast: true,
+                        firstText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        lastText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        prevText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        nextText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        labels: {
+                            perPage: "{select}"
+                        },
+                        layout: {
+                            top: "{search}",
+                            bottom: "{info}{select}{pager}",
+                        },
+                    });
+                },
+                generateColumns() {
+                    const columns = [];
+                    const columnCount = {{ table_headings|length }};
+                    
+                    for (let i = 0; i < columnCount; i++) {
+                        columns.push({
+                            select: i,
+                            render: (data, cell, row) => {
+                                // 检查是否为NaN值
+                                if (data === null || data === undefined || 
+                                    (typeof data === 'string' && data.toLowerCase() === 'nan')) {
+                                    return `<span class="nan-cell">NaN</span>`;
+                                }
+                                // 第一列加粗
+                                if (i === 0) {
+                                    return `<strong>${data}</strong>`;
+                                }
+                                return data;
+                            }
+                        });
+                    }
+                    return columns;
+                },
+                formatDate(date) {
+                    if (date) {
+                        const dt = new Date(date);
+                        const month = dt.getMonth() + 1 < 10 ? '0' + (dt.getMonth() + 1) : dt.getMonth() + 1;
+                        const day = dt.getDate() < 10 ? '0' + dt.getDate() : dt.getDate();
+                        return day + '/' + month + '/' + dt.getFullYear();
+                    }
+                    return '';
+                },
+                checkAll1(isChecked) {
+                    if (isChecked) {
+                        this.ids1 = this.tableData1.map((d) => {
+                            return d[0];
+                        });
+                    } else {
+                        this.ids1 = [];
+                    }
+                },
+                async submitRepair() {
+                    // 显示确认对话框
+                    const confirmResult = await new window.Swal({
+                        title: '确认修复数据',
+                        text: '您确定要修复当前页面的数据吗？此操作不可撤销！',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '确认修复',
+                        cancelButtonText: '取消',
+                        padding: '2em',
+                        customClass: 'sweet-alerts'
+                    });
+                    
+                    if (confirmResult.isConfirmed) {
+                            // 显示加载中状态
+                            const loadingAlert = new window.Swal({
+                                title: '正在修复数据...',
+                                allowOutsideClick: false,
+                                showConfirmButton: false,
+                                willOpen: () => {
+                                    window.Swal.showLoading();
+                                },
+                                padding: '2em',
+                                timer: 2000,  // 2秒后自动关闭
+                                customClass: 'sweet-alerts'
+                            });
+                            
+                           
+                            // 提交POST请求
+                            if (confirmResult.isConfirmed) {
+                                document.getElementById('repairForm').submit(); // 直接提交表单
+                            }
+                            
+                    }
+                }
+            }));
+        });
+    </script>
 {% endblock %}

@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 import pandas as pd
 from django.core.paginator import Paginator
 import json
+import numpy as np
 
 
 
@@ -138,30 +139,6 @@ def qar_upload(request):
 
 
 # 飞行数据预览
-class QARViewSet(viewsets.ModelViewSet):
-    queryset = QAR.objects.all()
-    serializer_class = QARSerializer
-    
-    # 添加过滤、搜索和排序功能
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    
-    # 可过滤字段
-    filterset_fields = {
-        'qar_id': ['exact', 'contains'],
-        'dSimTime': ['gte', 'lte', 'exact'],
-        'dASL': ['gte', 'lte'],
-        'dGroundspeed': ['gte', 'lte'],
-        'label': ['exact'],
-    }
-    
-    # 可搜索字段
-    search_fields = ['qar_id']
-    
-    # 可排序字段
-    ordering_fields = ['dSimTime', 'dASL', 'dGroundspeed']
-    ordering = ['dSimTime']  # 默认排序
-
-
 def qar_preview(request):
     # 获取字段列表作为表头（自动匹配模型字段）
     model_fields = [field.verbose_name for field in QAR._meta.fields]
@@ -203,4 +180,61 @@ def qar_quality(request):
 
 # 数据质量提升
 def qar_imputation(request):
-    return render(request, 'data_manage/qar_imputation.html')
+    # 获取字段列表作为表头
+    model_fields = [field.verbose_name for field in QAR._meta.fields]
+    field_names = [field.name for field in QAR._meta.fields]
+
+    # 定义不允许掩码的字段
+    exclude_fields = ['id', 'qar_id', 'flight_label', 'label','dSimTime', 'dStepTime']
+    
+    # 获取页码参数，默认第一页
+    page_number = request.GET.get('page', 1)
+    per_page = 50  # 每页显示数量
+
+    # 查询字段值
+    query_set = QAR.objects.values(*field_names)
+    paginator = Paginator(query_set, per_page)
+
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+    
+    # 将数据转换为 DataFrame
+    df = pd.DataFrame(list(page_obj.object_list), columns=field_names)
+
+    if request.method == 'GET':
+       
+        df_t = df.copy()
+        
+        # 1. 对允许掩码的字段进行处理
+        mask_fields = [field for field in field_names if field not in exclude_fields]
+        mask_values = ['', None, 'NULL', 'NA']    # 需要替换为NaN的值
+
+        
+        if not df_t.empty:
+            mask = np.random.choice([True, False], size=df.shape, p=[0.1, 0.9])
+            df_t = df_t.mask(mask)
+        
+        for field in mask_fields:
+            if field in df.columns:
+                df[field] = df_t[field].replace(mask_values, pd.NA)
+        
+        # 2. 将DataFrame转换为前端需要的格式
+        # 替换所有NA/NaN为字符串'NaN'，方便前端识别
+        df = df.fillna('NaN')
+    
+    elif request.method == 'POST':
+        pass
+    
+    # 转换为列表形式（而不是JSON），确保数据格式正确
+    table_data = df.values.tolist()
+
+    context = {
+        'table_data': table_data,  # 直接传递列表数据
+        'table_headings': model_fields,
+        'page_obj': page_obj
+    }
+    return render(request, 'data_manage/qar_imputation.html', context)

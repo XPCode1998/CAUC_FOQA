@@ -4,7 +4,6 @@
 {% block content %}
 
     <script src="{% static 'js/simple-datatables.js' %}"></script>
-
     <script defer src="{% static 'js/apexcharts.js' %}"></script>
 
     <ul class="flex space-x-2 rtl:space-x-reverse">
@@ -16,6 +15,302 @@
         </li>
     </ul>
 
-    <div class="pt-5">Hello World</div>
- 
+    <div class="pt-5">
+        <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">QAR参数超限记录</h5>
+                <div class="flex items-center space-x-2">
+                    <div class="form-group">
+                        <select id="filter-qar" class="form-select">
+                            <option value="">所有QAR ID</option>
+                            <option value="24625">24625</option>
+                            <option value="24628">24628</option>
+                            <option value="24631">24631</option>
+                            <option value="24635">24635</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <select id="filter-parameter" class="form-select">
+                            <option value="">所有参数</option>
+                            <option value="dAlpha">迎角</option>
+                            <option value="dBeta">侧滑角</option>
+                            <option value="dPhi">滚转角</option>
+                            <option value="dNx">X轴过载</option>
+                            <option value="dNz">Z轴过载</option>
+                            <option value="dTAS">真空速</option>
+                        </select>
+                    </div>
+                    <button id="filter-btn" class="btn btn-primary">筛选</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="exceeded-table" class="table-hover">
+                    <thead>
+                        <tr>
+                            <th>QAR ID</th>
+                            <th>时间</th>
+                            <th>参数</th>
+                            <th>参数值</th>
+                            <th>阈值范围</th>
+                            <th>超限类型</th>
+                            <th>严重程度</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 示例1: 迎角超限 -->
+                        <tr>
+                            <td>24625</td>
+                            <td>2023-06-15 08:23:42</td>
+                            <td>迎角 (dAlpha)</td>
+                            <td class="text-danger">15.6°</td>
+                            <td>10.0° ~ 12.0°</td>
+                            <td><span class="badge bg-danger">超过上限</span></td>
+                            <td><span class="badge bg-danger">高</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="1">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- 示例2: Z轴过载超限 -->
+                        <tr>
+                            <td>24625</td>
+                            <td>2023-06-15 08:24:15</td>
+                            <td>Z轴过载 (dNz)</td>
+                            <td class="text-danger">2.35g</td>
+                            <td>1.80g ~ 2.20g</td>
+                            <td><span class="badge bg-danger">超过上限</span></td>
+                            <td><span class="badge bg-warning">中</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="2">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- 示例3: 滚转角超限 -->
+                        <tr>
+                            <td>24628</td>
+                            <td>2023-06-16 14:07:33</td>
+                            <td>滚转角 (dPhi)</td>
+                            <td class="text-danger">38.2°</td>
+                            <td>-30.0° ~ 30.0°</td>
+                            <td><span class="badge bg-danger">超过上限</span></td>
+                            <td><span class="badge bg-danger">高</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="3">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- 示例4: 真空速低于阈值 -->
+                        <tr>
+                            <td>24631</td>
+                            <td>2023-06-17 09:45:21</td>
+                            <td>真空速 (dTAS)</td>
+                            <td class="text-warning">180.5 kts</td>
+                            <td>200.0 kts ~ 350.0 kts</td>
+                            <td><span class="badge bg-warning">低于下限</span></td>
+                            <td><span class="badge bg-warning">中</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="4">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- 示例5: 发动机转速超限 -->
+                        <tr>
+                            <td>24635</td>
+                            <td>2023-06-18 16:32:47</td>
+                            <td>发动机转速1 (rot1)</td>
+                            <td class="text-danger">105.2%</td>
+                            <td>95.0% ~ 102.0%</td>
+                            <td><span class="badge bg-danger">超过上限</span></td>
+                            <td><span class="badge bg-danger">高</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="5">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- 示例6: 侧滑角超限 -->
+                        <tr>
+                            <td>24635</td>
+                            <td>2023-06-18 16:33:12</td>
+                            <td>侧滑角 (dBeta)</td>
+                            <td class="text-danger">-4.8°</td>
+                            <td>-3.0° ~ 3.0°</td>
+                            <td><span class="badge bg-danger">低于下限</span></td>
+                            <td><span class="badge bg-warning">中</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary view-details" data-id="6">
+                                    <i class="fas fa-eye"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化数据表格
+            const table = new simpleDatatables.DataTable("#exceeded-table", {
+                searchable: true,
+                fixedHeight: true,
+                perPage: 10,
+                labels: {
+                    placeholder: "搜索...",
+                    perPage: "每页 {select} 条记录",
+                    noRows: "没有找到匹配的记录",
+                    info: "显示 {start} 到 {end} 条，共 {rows} 条记录"
+                }
+            });
+
+            // 详情按钮点击事件
+            document.querySelectorAll('.view-details').forEach(button => {
+                button.addEventListener('click', function() {
+                    const recordId = this.getAttribute('data-id');
+                    
+                    // 根据不同的记录ID显示不同的数据
+                    let chartData, parameterName, unit, min, max;
+                    
+                    switch(recordId) {
+                        case '1': // 迎角
+                            parameterName = "迎角 (dAlpha)";
+                            unit = "°";
+                            min = 8;
+                            max = 18;
+                            chartData = [10.2, 10.5, 11.0, 11.8, 12.5, 13.2, 14.0, 14.8, 15.6, 15.2];
+                            break;
+                        case '2': // Z轴过载
+                            parameterName = "Z轴过载 (dNz)";
+                            unit = "g";
+                            min = 1.5;
+                            max = 2.5;
+                            chartData = [1.82, 1.85, 1.92, 2.05, 2.15, 2.25, 2.35, 2.30, 2.25, 2.20];
+                            break;
+                        case '3': // 滚转角
+                            parameterName = "滚转角 (dPhi)";
+                            unit = "°";
+                            min = -40;
+                            max = 40;
+                            chartData = [15.2, 18.5, 22.0, 25.8, 28.5, 32.2, 35.0, 38.2, 36.5, 32.0];
+                            break;
+                        case '4': // 真空速
+                            parameterName = "真空速 (dTAS)";
+                            unit = "kts";
+                            min = 150;
+                            max = 400;
+                            chartData = [210.2, 205.5, 198.0, 192.8, 188.5, 185.2, 182.0, 180.5, 182.0, 185.0];
+                            break;
+                        case '5': // 发动机转速
+                            parameterName = "发动机转速1 (rot1)";
+                            unit = "%";
+                            min = 90;
+                            max = 110;
+                            chartData = [98.2, 99.5, 100.0, 101.8, 102.5, 103.2, 104.0, 105.2, 104.5, 103.0];
+                            break;
+                        case '6': // 侧滑角
+                            parameterName = "侧滑角 (dBeta)";
+                            unit = "°";
+                            min = -5;
+                            max = 5;
+                            chartData = [-1.2, -1.5, -2.0, -2.8, -3.5, -4.2, -4.8, -4.5, -4.0, -3.5];
+                            break;
+                    }
+                    
+                    // 初始化图表
+                    const options = {
+                        series: [{
+                            name: parameterName,
+                            data: chartData
+                        }],
+                        chart: {
+                            height: 250,
+                            type: 'line',
+                            zoom: {
+                                enabled: false
+                            },
+                            toolbar: {
+                                show: false
+                            }
+                        },
+                        colors: ['#4361ee'],
+                        stroke: {
+                            curve: 'smooth',
+                            width: 2
+                        },
+                        markers: {
+                            size: 5,
+                            hover: {
+                                size: 7
+                            }
+                        },
+                        xaxis: {
+                            categories: ['-9s', '-8s', '-7s', '-6s', '-5s', '-4s', '-3s', '-2s', '-1s', '当前'],
+                            labels: {
+                                style: {
+                                    colors: '#888',
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yaxis: {
+                            title: {
+                                text: unit
+                            },
+                            min: min,
+                            max: max
+                        },
+                        annotations: {
+                            yaxis: [
+                                {
+                                    y: recordId === '6' ? -3 : (recordId === '4' ? 200 : (recordId === '1' ? 12 : (recordId === '2' ? 2.2 : (recordId === '3' ? 30 : 102)))),
+                                    borderColor: '#f59e0b',
+                                    label: {
+                                        borderColor: '#f59e0b',
+                                        style: {
+                                            color: '#fff',
+                                            background: '#f59e0b'
+                                        },
+                                        text: '上限'
+                                    }
+                                },
+                                {
+                                    y: recordId === '6' ? 3 : (recordId === '4' ? 350 : (recordId === '1' ? 10 : (recordId === '2' ? 1.8 : (recordId === '3' ? -30 : 95)))),
+                                    borderColor: '#f59e0b',
+                                    label: {
+                                        borderColor: '#f59e0b',
+                                        style: {
+                                            color: '#fff',
+                                            background: '#f59e0b'
+                                        },
+                                        text: recordId === '4' ? '下限' : '上限'
+                                    }
+                                }
+                            ]
+                        }
+                    };
+                    
+                    // 渲染图表
+                    const chart = new ApexCharts(document.querySelector("#parameter-chart"), options);
+                    chart.render();
+                    
+                    // 显示模态框
+                    const modal = new bootstrap.Modal(document.getElementById('detail-modal'));
+                    modal.show();
+                });
+            });
+        });
+    </script>
 {% endblock %}
