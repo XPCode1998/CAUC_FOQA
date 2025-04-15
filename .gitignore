@@ -2,3 +2,6 @@
 
 # 开发环境文件
 .env
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
