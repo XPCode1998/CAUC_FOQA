@@ -1,4 +1,3 @@
 # Django 项目 .gitignore
 
 # 开发环境文件
-.env
