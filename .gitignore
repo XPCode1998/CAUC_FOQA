@@ -1,6 +1,7 @@
 # Django 项目 .gitignore
 
 # 开发环境文件
+# 忽略env
 .env
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+#test
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('auth/', include('apps.users.urls')),
@@ -24,4 +26,5 @@ urlpatterns = [
     path('dashboard/', include('apps.qar_data.urls')),
     path('data_manage/', include('apps.qar_data.urls')),
     path('analysis/', include('apps.qar_data.urls')),
+    #path('user/', include('apps.qar_data.urls')),
 ]
