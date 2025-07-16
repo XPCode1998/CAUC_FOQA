@@ -1,0 +1,413 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+<div>
+    <style>
+        /* 结果弹窗样式 */
+        .result-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+        .result-modal-content {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            width: 100%;
+            max-width: 28rem;
+            margin: 0 1rem;
+        }
+        .dark .result-modal-content {
+            background-color: #1f2937;
+        }
+        .result-modal-success .result-icon {
+            color: #10B981;
+        }
+        .result-modal-error .result-icon {
+            color: #EF4444;
+        }
+        .result-message {
+            white-space: pre-line;
+        }
+    </style>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行数据管理</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>飞行数据导入</span>
+        </li>
+    </ul>
+    
+    <div class="pt-5 space-y-8" x-data="dataUpload">
+        <!-- 结果弹窗 -->
+        <div x-data="resultModal" x-show="isOpen" class="result-modal" x-transition>
+            <div class="result-modal-content" :class="{
+                'result-modal-success': status === 'success',
+                'result-modal-error': status === 'error'
+            }">
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <template x-if="status === 'success'">
+                            <svg class="result-icon w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </template>
+                        <template x-if="status === 'error'">
+                            <svg class="result-icon w-8 h-8 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </template>
+                        <h3 class="text-lg font-medium" x-text="title"></h3>
+                    </div>
+                    <p class="result-message text-gray-600 dark:text-gray-300 mb-6" x-text="message"></p>
+                    <div class="flex justify-end">
+                        <button @click="closeModal" class="btn btn-primary">
+                            <span class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                确认
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主表单 -->
+        <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">飞行数据导入</h5>
+                <button x-show="fileContent" @click="resetForm()" class="btn btn-sm btn-outline-danger" :disabled="isLoading">
+                    重置
+                </button>
+            </div>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-5" @submit="submitForm($event)">
+                {% csrf_token %}
+                
+                <!-- 飞行标签选择 -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        飞行风险标签 <span class="text-red-500">*</span>
+                    </label>
+                    <select name="label" x-model="flightLabel" class="form-select w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700" required :disabled="isLoading">
+                        {% for value, text in form.label.field.choices %}
+                            <option value="{{ value }}">{{ text }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- <p class="mt-1 text-xs text-gray-500" x-text="'当前选择: ' + getLabelText(flightLabel)"></p> -->
+                </div>
+
+                <!-- 文件上传区域 -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        QAR 数据文件 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" id="qarFileInput" name="file" accept=".txt,.csv" required class="hidden" @change="previewFile($event)" :disabled="isLoading">
+                    <label for="qarFileInput" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-colors duration-200" :class="{ 
+                        'border-green-500': qarId, 
+                        'opacity-50 cursor-not-allowed': isLoading,
+                        'border-blue-500 !bg-blue-50 dark:!bg-blue-900/20': isDragging
+                    }" :disabled="isLoading">
+                        <template x-if="!qarId && !isLoading">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                </svg>
+                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="font-semibold">点击上传</span> 或拖放文件到此处
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">TXT 或 CSV 文件 (最大10MB)</p>
+                            </div>
+                        </template>
+                        <template x-if="qarId && !isLoading">
+                            <div class="p-4 text-center">
+                                <svg class="w-10 h-10 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="font-medium" x-text="'已选择: ' + qarId + '.' + getFileExtension(document.getElementById('qarFileInput').files[0].name)"></p>
+                                <p class="text-xs text-gray-500 mt-1">QAR ID: <span x-text="parseQARId(document.getElementById('qarFileInput').files[0].name)"></span></p>
+                            </div>
+                        </template>
+                        <template x-if="isLoading">
+                            <div class="flex flex-col items-center justify-center p-4">
+                                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">
+                                    <span x-text="uploadProgress > 0 ? `上传中 ${Math.min(uploadProgress, 100)}%` : '正在处理文件...'"></span>
+                                </p>
+                            </div>
+                        </template>
+                    </label>
+                    <div x-show="error" class="mt-1 text-sm text-red-500" x-text="error"></div>
+                </div>
+                
+                <!-- 字段信息提示 -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <details>
+                        <summary class="cursor-pointer font-medium text-sm">点击查看期望的字段列表 (共{{ model_fields|length }}个)</summary>
+                        <div class="mt-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {% for field in model_fields %}
+                            <span class="text-xs font-mono bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                                {{ field }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </details>
+                </div>
+                
+                <!-- 文件预览区域 -->
+                <div x-show="fileContent" class="mt-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-sm font-medium text-gray-900 dark:text-white">
+                            文件内容预览 (前100行)
+                        </label>
+                        <span class="text-xs text-gray-500" 
+                              x-text="'共 ' + fileContent.split('\n').length + ' 行'"></span>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div class="overflow-auto max-h-[500px]">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <template x-for="(line, index) in fileContent.split('\n').slice(0, 100)" :key="index">
+                                    <tr :class="{'bg-gray-50 dark:bg-gray-700': index % 2 === 0}">
+                                        <td x-text="line" class="px-4 py-2 text-sm font-mono whitespace-pre"></td>
+                                    </tr>
+                                </template>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提交按钮 -->
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="btn btn-primary" :disabled="!fileContent || isLoading" :class="{ 'opacity-75': isLoading }">
+                        <span x-show="!isLoading">导入数据</span>
+                        <span x-show="isLoading" class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            处理中...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    // 结果弹窗组件
+    Alpine.data('resultModal', () => ({
+        isOpen: false,
+        status: '',
+        title: '',
+        message: '',
+        
+        openModal(status, title, message) {
+            this.status = status;
+            this.title = title;
+            this.message = message;
+            this.isOpen = true;
+        },
+        
+        closeModal() {
+            this.isOpen = false;
+            window.location.reload();
+        }
+    }));
+    
+    // 文件上传组件
+    Alpine.data('dataUpload', () => ({
+        qarId: '',
+        fileContent: '',
+        flightLabel: 0,
+        isLoading: false,
+        isDragging: false,
+        uploadProgress: 0,
+        uploadController: null,
+        error: '',
+        
+        init() {
+            this.setupDragAndDrop();
+            this.$el.addEventListener('show-result', (e) => {
+                const modal = Alpine.store('resultModal') || this.$root.querySelector('[x-data="resultModal"]')._x_dataStack[0];
+                modal.openModal(e.detail.status, e.detail.title, e.detail.message);
+            });
+        },
+        
+        setupDragAndDrop() {
+            const dropArea = this.$el.querySelector('#qarFileInput').nextElementSibling;
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, (e) => {
+                    this.isDragging = true;
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, (e) => {
+                    this.isDragging = false;
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length) {
+                    const fileInput = this.$el.querySelector('#qarFileInput');
+                    fileInput.files = files;
+                    const event = new Event('change');
+                    fileInput.dispatchEvent(event);
+                }
+            });
+        },
+        
+        parseQARId(filename) {
+            // 1. 移除路径
+            const cleanName = filename.split('\\').pop().split('/').pop();
+            
+            // 2. 验证格式并提取数字部分
+            const match = cleanName.match(/^(\d{4})-(\d{2})-(\d{2})_(\d+)\.(csv|txt)$/i);
+            if (!match) return '';
+            
+            // 3. 拼接为2023083124440格式
+            return match[1] + match[2] + match[3] + match[4];
+        },
+        
+        getFileExtension(filename) {
+            const match = filename.match(/\.([^.]+)$/);
+            return match ? match[1].toLowerCase() : '';
+        },
+        
+        async previewFile(event) {
+            this.error = '';
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 验证文件大小和类型
+            if (file.size > 10 * 1024 * 1024) {
+                this.error = '文件大小不能超过10MB';
+                this.resetForm();
+                return;
+            }
+            
+            const extension = this.getFileExtension(file.name);
+            if (!['txt', 'csv'].includes(extension)) {
+                this.error = '只支持.txt和.csv格式的文件';
+                this.resetForm();
+                return;
+            }
+            
+            try {
+                this.isLoading = true;
+                this.fileContent = (await file.text()).split('\n').slice(0, 101).join('\n');
+                
+                if (this.fileContent.split('\n').length < 2) {
+                    this.error = '文件内容过少，至少需要包含标题行和数据行';
+                    this.resetForm();
+                }
+            } catch (error) {
+                console.error('文件读取错误:', error);
+                this.error = '文件读取失败，请检查文件格式';
+                this.resetForm();
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        
+        resetForm() {
+            this.qarId = '';
+            this.fileContent = '';
+            this.flightLabel = 0;
+            this.error = '';
+            this.uploadProgress = 0;
+            document.getElementById('qarFileInput').value = '';
+            this.isLoading = false;
+            this.cancelUpload();
+        },
+        
+        getLabelText(value) {
+            const choices = {{ form.label.field.choices|safe }};
+            const option = choices.find(opt => opt[0] == value);
+            return option ? option[1] : '未知标签';
+        },
+        
+        cancelUpload() {
+            if (this.uploadController) {
+                this.uploadController.abort();
+                this.uploadController = null;
+            }
+            this.isLoading = false;
+        },
+        
+        async submitForm(event) {
+            event.preventDefault();
+            
+            if (!this.fileContent) {
+                this.error = '请先选择有效的文件';
+                return;
+            }
+            
+            this.isLoading = true;
+            this.uploadProgress = 0;
+            this.error = '';
+            this.uploadController = new AbortController();
+            
+            try {
+                const formData = new FormData(this.$el);
+                
+                const response = await fetch(this.$el.action, {
+                    method: 'POST',
+                    body: formData,
+                    signal: this.uploadController.signal,
+                    headers: {
+                        'X-CSRFToken': this.$el.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                });
+                
+                if (!response.ok) throw new Error(`HTTP错误! 状态码: ${response.status}`);
+                
+                const data = await response.json();
+                this.$dispatch('show-result', {
+                    status: data.status,
+                    title: data.title || (data.status === 'success' ? '上传成功' : '上传失败'),
+                    message: data.message
+                });
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    this.$dispatch('show-result', {
+                        status: 'error',
+                        title: '上传错误',
+                        message: error.message || '上传过程中发生错误'
+                    });
+                }
+            } finally {
+                if (!this.uploadController?.signal.aborted) {
+                    this.isLoading = false;
+                }
+                this.uploadController = null;
+            }
+        }
+    }));
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行品质监控</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>预设参数管理</span>
+        </li>
+    </ul>
+
+    <div class="pt-5">
+        <div class="panel">
+            <div class="flex items-center justify-between mb-5">
+                <h5 class="font-semibold text-lg dark:text-white-light">QAR参数阈值设置</h5>
+                <div>
+                    <a href="{% if request.GET.monitored_only %}?{% else %}?monitored_only=1{% endif %}" 
+                       class="btn btn-primary btn-sm bg-blue-600 hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-filter mr-1"></i>
+                        {% if request.GET.monitored_only %}显示所有参数{% else %}只显示监控参数{% endif %}
+                    </a>
+                </div>
+            </div>
+            
+            <form method="post" action="{% url 'preset_parameter' %}" class="space-y-5">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 循环遍历所有参数 -->
+                    {% for param in parameters %}
+                    <div class="space-y-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <div class="form-group">
+                            <label for="{{ param.parameter_name }}_warning_lower" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <span class="font-semibold">{{ param.description }}</span>
+                                {% if param.unit %}<span class="text-xs text-gray-500 ml-1">({{ param.unit }})</span>{% endif %}
+                            </label>
+                            
+                            <!-- 警告阈值 -->
+                            <div class="mb-3">
+                                <label class="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>警告阈值
+                                </label>
+                                <div class="flex space-x-2">
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" 
+                                               id="{{ param.parameter_name }}_warning_lower" 
+                                               name="{{ param.parameter_name }}_warning_lower" 
+                                               value="{{ param.warning_lower|default_if_none:'' }}" 
+                                               placeholder="下限" 
+                                               class="w-full px-3 py-2 text-sm border border-amber-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 bg-amber-50 dark:bg-gray-700 dark:border-amber-600 dark:focus:ring-amber-500/30 transition-all">
+                                    </div>
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" 
+                                               id="{{ param.parameter_name }}_warning_upper" 
+                                               name="{{ param.parameter_name }}_warning_upper" 
+                                               value="{{ param.warning_upper|default_if_none:'' }}" 
+                                               placeholder="上限" 
+                                               class="w-full px-3 py-2 text-sm border border-amber-300 rounded-md focus:ring-2 focus:ring-amber-200 focus:border-amber-500 bg-amber-50 dark:bg-gray-700 dark:border-amber-600 dark:focus:ring-amber-500/30 transition-all">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 严重阈值 -->
+                            <div class="mb-3">
+                                <label class="text-xs font-medium text-red-600 dark:text-red-400 flex items-center">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>严重阈值
+                                </label>
+                                <div class="flex space-x-2">
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" 
+                                               id="{{ param.parameter_name }}_critical_lower" 
+                                               name="{{ param.parameter_name }}_critical_lower" 
+                                               value="{{ param.critical_lower|default_if_none:'' }}" 
+                                               placeholder="下限" 
+                                               class="w-full px-3 py-2 text-sm border border-red-300 rounded-md focus:ring-2 focus:ring-red-200 focus:border-red-500 bg-red-50 dark:bg-gray-700 dark:border-red-600 dark:focus:ring-red-500/30 transition-all">
+                                    </div>
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" 
+                                               id="{{ param.parameter_name }}_critical_upper" 
+                                               name="{{ param.parameter_name }}_critical_upper" 
+                                               value="{{ param.critical_upper|default_if_none:'' }}" 
+                                               placeholder="上限" 
+                                               class="w-full px-3 py-2 text-sm border border-red-300 rounded-md focus:ring-2 focus:ring-red-200 focus:border-red-500 bg-red-50 dark:bg-gray-700 dark:border-red-600 dark:focus:ring-red-500/30 transition-all">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 当前值范围和监控开关 -->
+                            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                <span class="flex items-center">
+                                    <i class="fas fa-chart-line mr-1"></i>
+                                    {% if param.min_value is not None and param.max_value is not None %}
+                                    {{ param.min_value|floatformat:2 }} ~ {{ param.max_value|floatformat:2 }}
+                                    {% else %}暂无数据{% endif %}
+                                </span>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" 
+                                           name="{{ param.parameter_name }}_is_monitored" 
+                                           class="form-checkbox" 
+                                           {% if param.is_monitored %}checked{% endif %}>
+                                    <span class="ml-1">监控</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="flex justify-end mt-8 gap-6">
+                    <button type="reset" class="btn btn-outline-danger">
+                        <i class="fas fa-undo mr-2"></i>重置
+                    </button>
+                    <button type="submit" class="btn btn-primary bg-blue-600 hover:bg-blue-700">
+                        <i class="fas fa-save mr-2"></i>保存设置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        /* 自定义输入框动画效果 */
+        input[type="number"] {
+            transition: all 0.2s ease;
+        }
+        
+        /* 暗色模式适配 */
+        .dark input[type="number"] {
+            color: #e5e7eb;
+        }
+        
+        /* 参数卡片悬停效果 */
+        .panel .bg-white:hover, .panel .bg-gray-800:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* 标签图标间距调整 */
+        label i {
+            margin-right: 0.25rem;
+        }
+    </style>
+{% endblock %}

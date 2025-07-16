@@ -1,0 +1,294 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行数据管理</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>数据质量提升</span>
+        </li>
+    </ul>
+    <div class="pt-5">
+        <div class="grid xl:grid-cols-1 gap-6 mb-6">
+            <div x-data="custom">
+                <div class="space-y-6">
+                    <!-- QAR ID选择表单 -->
+                    <div class="panel gap-5">
+                        <div class="flex items-center justify-between mb-5">
+                            <h5 class="font-semibold text-lg dark:text-white-light">选择飞行记录</h5>
+                        </div>
+                        <form method="get" class="flex items-center">
+                            <div class="relative mr-2 flex-1">
+                                <select name="qar_id" class="form-select">
+                                    {% for qar_id in qar_ids %}
+                                    <option value="{{ qar_id }}" {% if qar_id == selected_qar_id %}selected{% endif %}>
+                                        {{ qar_id }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <span>查询</span>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- 数据展示表格 -->
+                    <div class="panel sticky-header gap-5">
+                        
+                        <table id="myTable1" class="whitespace-nowrap table-checkbox table-striped table-hover"></table>
+                        
+                        <!-- 分页导航 -->
+                        <div class="mt-4 flex flex-col sm:flex-row justify-between items-center">
+                            <p class="text-sm text-gray-700 mb-2 sm:mb-0 dark:text-white-light">
+                                显示 <span class="font-medium">{{ page_obj.start_index }}</span> 到 <span class="font-medium">{{ page_obj.end_index }}</span> 条，共 <span class="font-medium">{{ page_obj.paginator.count }}</span> 条
+                            </p>
+                        
+                            <ul class="inline-flex items-center space-x-1 rtl:space-x-reverse mb-4 sm:mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li>
+                                        <a href="?page=1{% if selected_qar_id %}&qar_id={{ selected_qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.previous_page_number }}{% if selected_qar_id %}&qar_id={{ selected_qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                        
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li>
+                                            <span class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-primary text-white dark:text-white-light dark:bg-primary">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li>
+                                            <a href="?page={{ num }}{% if selected_qar_id %}&qar_id={{ selected_qar_id }}{% endif %}" class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                        
+                                {% if page_obj.has_next %}
+                                    <li>
+                                        <a href="?page={{ page_obj.next_page_number }}{% if selected_qar_id %}&qar_id={{ selected_qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_qar_id %}&qar_id={{ selected_qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据操作面板 -->
+                    <div class="panel gap-5">
+                        <div class="flex items-center justify-between mb-5">
+                            <h5 class="font-semibold text-lg dark:text-white-light">数据操作</h5>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            
+                            <!-- 模型训练按钮 -->
+                            <form id="trainForm" method="post" action="{% url 'data_imputation' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="train_model">
+                                <button type="button" class="btn btn-primary w-full" @click="submitTrain">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    训练模型
+                                </button>
+                            </form>
+
+                            <!-- 数据修复按钮 -->
+                            <form id="repairForm" method="post" action="{% url 'data_imputation' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="repair_data">
+                                <input type="hidden" name="qar_id" value="{{ selected_qar_id }}">
+                                <button type="button" class="btn btn-success w-full" @click="submitRepair" :disabled="!selectedQarId">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                                    </svg>
+                                    数据修复
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .nan-cell {
+            background-color: #fff4f4;
+            color: #ff0000;
+            font-weight: bold;
+        }
+        .dark .nan-cell {
+            background-color: #4a1a1a;
+            color: #ff6b6b;
+        }
+        .imputed-cell {
+            background-color: #f0fff0;
+            color: #006400;
+            font-weight: bold;
+        }
+        .dark .imputed-cell {
+            background-color: #1a4a1a;
+            color: #6bff6b;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("custom", () => ({
+                ids1: [],
+                datatable1: null,
+                tableData1: {{ table_data | safe }},
+                maskPositions: {{ mask_positions|safe|default:"{}" }},
+                selectedQarId: "{{ selected_qar_id|default:'' }}",
+                init() {
+                    this.datatable1 = new simpleDatatables.DataTable('#myTable1', {
+                        data: {
+                            headings: {{ table_headings|safe }},
+                            data: this.tableData1,
+                        },
+                        paging: false,
+                        perPage: 20,
+                        columns: this.generateColumns(),
+                        firstLast: true,
+                        firstText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        lastText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        prevText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        nextText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        labels: { perPage: "{select}" },
+                        layout: {
+                            top: "",
+                            bottom: "{info}{select}{pager}",
+                        },
+                    });
+                },
+                generateColumns() {
+                    const columns = [];
+                    const columnCount = {{ table_headings|length }};
+                    const headings = {{ table_headings|safe }};
+                    
+                    for (let i = 0; i < columnCount; i++) {
+                        const fieldName = headings[i];
+                        columns.push({
+                            select: i,
+                            render: (data, cell, row) => {
+                                // 检查是否是NaN值
+                                if (data === null || data === undefined || 
+                                    (typeof data === 'string' && data.toLowerCase() === 'nan')) {
+                                    return `<span class="nan-cell">NaN</span>`;
+                                }
+                                
+                                // 检查是否是填充的数据
+                                if (this.maskPositions[fieldName] && this.maskPositions[fieldName][row]) {
+                                    return `<span class="imputed-cell">${data}</span>`;
+                                }
+                                
+                                if (i === 0) {
+                                    return `<strong>${data}</strong>`;
+                                }
+                                return data;
+                            }
+                        });
+                    }
+                    return columns;
+                },
+                async submitRepair() {
+                    if (!this.selectedQarId) {
+                        await new window.Swal({
+                            title: '请选择飞行记录',
+                            text: '请先选择要修复的飞行记录QAR ID',
+                            icon: 'warning',
+                            confirmButtonText: '确定',
+                            padding: '2em',
+                            customClass: 'sweet-alerts'
+                        });
+                        return;
+                    }
+                    
+                    const confirmResult = await new window.Swal({
+                        title: '确认修复数据',
+                        text: `您确定要修复QAR ID为 ${this.selectedQarId} 的数据吗？此操作不可撤销！`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '确认修复',
+                        cancelButtonText: '取消',
+                        padding: '2em',
+                        customClass: 'sweet-alerts'
+                    });
+                    
+                    if (confirmResult.isConfirmed) {
+                        const loadingAlert = new window.Swal({
+                            title: '正在修复数据...',
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            willOpen: () => {
+                                window.Swal.showLoading();
+                            },
+                            padding: '2em',
+                            customClass: 'sweet-alerts'
+                        });
+                        
+                        document.getElementById('repairForm').submit();
+                    }
+                },
+                async submitTrain() {
+                    const confirmResult = await new window.Swal({
+                        title: '确认训练模型',
+                        text: '您确定要训练LGTDM模型吗？此操作可能需要较长时间！',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '确认训练',
+                        cancelButtonText: '取消',
+                        padding: '2em',
+                        customClass: 'sweet-alerts'
+                    });
+                    
+                    if (confirmResult.isConfirmed) {
+                        const loadingAlert = new window.Swal({
+                            title: '正在训练模型...',
+                            text: '模型训练中，请勿关闭页面',
+                            allowOutsideClick: false,
+                            showConfirmButton: false,
+                            willOpen: () => {
+                                window.Swal.showLoading();
+                            },
+                            padding: '2em',
+                            customClass: 'sweet-alerts'
+                        });
+                        
+                        document.getElementById('trainForm').submit();
+                    }
+                }
+            }));
+        });
+    </script>
+{% endblock %}

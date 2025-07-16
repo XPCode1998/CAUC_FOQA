@@ -1,0 +1,131 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行品质监控</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>飞行风险监测</span>
+        </li>
+    </ul>
+
+    <div class="pt-5">
+        <div class="panel">
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <h5 class="font-semibold text-lg dark:text-white-light">QAR数据超限分析</h5>             
+            <!-- 搜索框 -->
+            <form method="get" class="flex items-center" id="search-form">
+                <div class="relative mr-2">
+                    <input 
+                        type="text" 
+                        name="qar_id" 
+                        value="{{ qar_id_t }}"
+                        placeholder="输入QAR ID查询" 
+                        class="form-input w-48 pl-10"
+                        list="qar-ids"
+                        autocomplete="off"
+                    >
+                    <svg class="absolute left-4 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <datalist id="qar-ids">
+                        {% for id in qar_ids %}
+                            <option value="{{ id }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <button type="submit" class="btn btn-primary" id="search-btn">
+                    <span id="search-text">查询</span>
+                    <svg id="search-spinner" class="hidden w-4 h-4 ml-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+                {% if qar_id_t %}
+                    <a href="{% url 'flight_risk' %}" class="btn btn-outline-danger ml-2">清除</a>
+                {% endif %}
+            </form>
+            </div>
+            
+            <!-- 飞行记录详情 -->
+            {% if flight_data %}
+            <div class="mt-6">
+                
+                <!-- 超限记录表格 -->
+                <div class="card">
+                    <div class="card-body">
+                        {% if exceeded_records %}
+                        <div class="table-responsive">
+                            <table id="exceeded-table" class="table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>参数名称</th>
+                                        <th>参数值</th>
+                                        <th>阈值范围</th>
+                                        <th>超限类型</th>
+                                        <th>严重程度</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in exceeded_records %}
+                                    <tr>
+                                        <td>{{ record.parameter_name }} ({{ record.parameter }})</td>
+                                        <td class="{% if '严重' in record.exceed_type %}text-danger{% else %}text-warning{% endif %}">
+                                            {{ record.value }}{{ record.unit }}
+                                        </td>
+                                        <td>{{ record.thresholds }}{{ record.unit }}</td>
+                                        <td>
+                                            <span class="badge {% if '严重' in record.exceed_type %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ record.exceed_type }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if record.severity == '高' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ record.severity }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 text-gray-500">
+                            该飞行记录没有检测到参数超限情况
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% elif qar_id_t %}
+            <div class="mt-6 text-center py-4 text-gray-500">
+                未找到QAR ID为"{{ qar_id_t }}"的飞行记录
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+   
+
+   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化数据表格
+        const table = new simpleDatatables.DataTable("#exceeded-table", {
+            searchable: false,
+            perPageSelect: false,
+            fixedHeight: false,
+            perPage: 1000,
+            labels: { info: "" }
+        });
+    });
+</script>
+{% endblock %}

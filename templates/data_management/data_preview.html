@@ -1,0 +1,215 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+    <script src="{% static 'js/simple-datatables.js' %}"></script>
+    <script defer src="{% static 'js/apexcharts.js' %}"></script>
+
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行数据管理</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>飞行数据预览</span>
+        </li>
+    </ul>
+
+    <div class="pt-5">
+        <div class="grid xl:grid-cols-1 gap-6 mb-6">
+            <div x-data="custom">
+                <div class="space-y-10">
+                    <div class="panel sticky-header">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                            <h5 class="font-semibold text-lg dark:text-white-light">QAR数据</h5>
+                            <form method="get" class="flex items-center" id="search-form">
+                                <div class="relative mr-2">
+                                    <input 
+                                        type="text" 
+                                        name="qar_id" 
+                                        value="{{ qar_id }}"
+                                        placeholder="输入QAR ID查询" 
+                                        class="form-input w-48 pl-10"
+                                        list="qar-ids"
+                                        autocomplete="off"
+                                    >
+                                    <svg class="absolute left-4 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                    <datalist id="qar-ids">
+                                        {% for id in qar_ids %}
+                                            <option value="{{ id }}">
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="search-btn">
+                                    <span id="search-text">查询</span>
+                                    <svg id="search-spinner" class="hidden w-4 h-4 ml-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </button>
+                                {% if qar_id %}
+                                    <a href="{% url 'data_preview' %}" class="btn btn-outline-danger ml-2">清除</a>
+                                {% endif %}
+                            </form>
+                        </div>
+                        
+                        <table id="myTable1" class="whitespace-nowrap table-checkbox table-striped table-hover"></table>
+                        
+                        <!-- 使用指定样式的分页导航 -->
+                        <div class="mt-4 flex flex-col sm:flex-row justify-between items-center">
+                            <!-- 页码信息 - 靠左 -->
+                            <p class="text-sm text-gray-700 mb-2 sm:mb-0 dark:text-white-light">
+                                显示 <span class="font-medium">{{ page_obj.start_index }}</span> 到 <span class="font-medium">{{ page_obj.end_index }}</span> 条，共 <span class="font-medium">{{ page_obj.paginator.count }}</span> 条
+                            </p>
+                        
+                            <!-- 分页器 - 靠右 -->
+                            <ul class="inline-flex items-center space-x-1 rtl:space-x-reverse mb-4 sm:mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li>
+                                        <a href="?page=1{% if qar_id %}&qar_id={{ qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.previous_page_number }}{% if qar_id %}&qar_id={{ qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                        
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li>
+                                            <span class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-primary text-white dark:text-white-light dark:bg-primary">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li>
+                                            <a href="?page={{ num }}{% if qar_id %}&qar_id={{ qar_id }}{% endif %}" class="flex justify-center font-semibold px-3.5 py-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                        
+                                {% if page_obj.has_next %}
+                                    <li>
+                                        <a href="?page={{ page_obj.next_page_number }}{% if qar_id %}&qar_id={{ qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="?page={{ page_obj.paginator.num_pages }}{% if qar_id %}&qar_id={{ qar_id }}{% endif %}" class="flex justify-center font-semibold p-2 rounded-full transition bg-white-light text-dark hover:text-white hover:bg-primary dark:text-white-light dark:bg-[#191e3a] dark:hover:bg-primary">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 rtl:rotate-180">
+                                                <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("alpine:init", () => {
+            Alpine.data("custom", () => ({
+                ids1: [],
+                datatable1: null,
+                tableData1: {{ table_data |safe }},
+                init() {
+                    this.datatable1 = new simpleDatatables.DataTable('#myTable1', {
+                        data: {
+                            headings: {{ table_headings|safe }},
+                            data: this.tableData1,
+                        },
+                        paging: false,  // 禁用前端分页
+                        perPage: 20,
+                        columns: [
+                            {
+                                select: 0,
+                                render: (data, cell, row) => {
+                                    return `<strong>${data}</strong>`;
+                                },
+                            },
+                        ],
+                        firstLast: true,
+                        firstText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M13 19L7 12L13 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M16.9998 19L10.9998 12L16.9998 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        lastText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M11 19L17 12L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> <path opacity="0.5" d="M6.99976 19L12.9998 12L6.99976 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        prevText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M15 5L9 12L15 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        nextText: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5 rtl:rotate-180"> <path d="M9 5L15 12L9 19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/> </svg>',
+                        labels: {
+                            perPage: "{select}"
+                        },
+                        layout: {
+                            top: "",
+                            bottom: "{info}{select}{pager}",
+                        },
+                    });
+                },
+                formatDate(date) {
+                    if (date) {
+                        const dt = new Date(date);
+                        const month = dt.getMonth() + 1 < 10 ? '0' + (dt.getMonth() + 1) : dt.getMonth() + 1;
+                        const day = dt.getDate() < 10 ? '0' + dt.getDate() : dt.getDate();
+                        return day + '/' + month + '/' + dt.getFullYear();
+                    }
+                    return '';
+                },
+                checkAll1(isChecked) {
+                    if (isChecked) {
+                        this.ids1 = this.tableData1.map((d) => {
+                            return d[0];
+                        });
+                    } else {
+                        this.ids1 = [];
+                    }
+                },
+            }));
+        });
+
+        // 搜索功能增强
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('search-form');
+            const searchInput = searchForm.querySelector('input[name="qar_id"]');
+            const searchBtn = document.getElementById('search-btn');
+            const searchText = document.getElementById('search-text');
+            const searchSpinner = document.getElementById('search-spinner');
+            
+            // 回车键提交
+            searchInput.addEventListener('keypress', function(e) {
+                if(e.key === 'Enter') {
+                    e.preventDefault();
+                    submitSearch();
+                }
+            });
+            
+            // 表单提交处理
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitSearch();
+            });
+            
+            function submitSearch() {
+                searchBtn.disabled = true;
+                searchText.textContent = '查询中...';
+                searchSpinner.classList.remove('hidden');
+                
+                // 提交表单
+                setTimeout(() => {
+                    searchForm.submit();
+                }, 100);
+            }
+        });
+    </script>
+{% endblock %}

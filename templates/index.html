@@ -1,0 +1,27 @@
+{% extends 'components/layouts/default.html' %}
+{% load static %}
+
+{% block content %}
+
+<script src="{% static 'js/simple-datatables.js' %}"></script>
+<script defer src="{% static 'js/apexcharts.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+<link rel="stylesheet" href="{% static 'css/highlight.min.css' %}">
+<script src="{% static 'js/highlight.min.js' %}"></script>
+
+<div>
+    <ul class="flex space-x-2 rtl:space-x-reverse">
+        <li>
+            <a href="javascript:;" class="text-primary hover:underline">飞行品质监控系统</a>
+        </li>
+        <li class="before:content-['/'] ltr:before:mr-1 rtl:before:ml-1">
+            <span>欢迎访问首页</span>
+        </li>
+    </ul>
+</div>
+
+
+
+{% endblock %}
